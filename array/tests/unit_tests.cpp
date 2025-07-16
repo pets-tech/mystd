@@ -1,4 +1,3 @@
-// g++ -std=c++23 tests.cpp -lgtest -lgtest_main -pthread && ./a.out
 #include "array.hpp"
 #include <gtest/gtest.h>
 
