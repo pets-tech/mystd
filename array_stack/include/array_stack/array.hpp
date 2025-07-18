@@ -7,7 +7,8 @@
 #include <ostream>
 
 namespace my {
-    
+namespace stack {
+
 template<typename T, size_t N>
 class array {
     static_assert(std::is_default_constructible<T>(), "Array elements must be default-contructoble");
@@ -156,4 +157,5 @@ std::ostream& operator<< (std::ostream& os, const array<T, N> arr) noexcept{
     return os;
 }
 
+}
 } // end of namespace my
