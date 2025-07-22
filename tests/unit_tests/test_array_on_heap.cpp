@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "array_heap/array.hpp"
+#include "mystd/array_heap.hpp"
 
 namespace my {
 namespace heap {
@@ -7,7 +7,7 @@ namespace testing {
 
 class Mock {};
 
-TEST(ArrayTest, DefaultConstructor) {
+TEST(ArrayTestHeap, DefaultConstructor) {
     array<int, 3> a1;
     array<float, 3> a2;
     array<double, 3> a3;
@@ -16,7 +16,7 @@ TEST(ArrayTest, DefaultConstructor) {
     EXPECT_EQ(a_high.size(), 1'000'000'000);
 }
 
-TEST(ArrayTest, Copy) {
+TEST(ArrayTestHeap, Copy) {
     array<int, 3> a = {1,2,3};
     array<int, 3> b(a);
     array<int, 3> c = a;
@@ -27,7 +27,7 @@ TEST(ArrayTest, Copy) {
     EXPECT_EQ(a[2], c[2]);
 }
 
-TEST(ArrayTest, Iterators) {
+TEST(ArrayTestHeap, Iterators) {
     array<int, 3> a = {1,2,3};
     int i = 0;
     for (const auto& el : a) {
@@ -41,14 +41,14 @@ TEST(ArrayTest, Iterators) {
 
 
 // modification
-TEST(ArrayTest, Fill) {
+TEST(ArrayTestHeap, Fill) {
     array<int, 13> arr;
     arr.fill(42);
     EXPECT_EQ(arr[0], 42);
     EXPECT_EQ(arr[12], 42);
 }
 
-TEST(ArrayTest, Swap) {
+TEST(ArrayTestHeap, Swap) {
     array<int, 2> arr1{1,2};
     array<int, 2> arr2{3,4};
     arr1.swap(arr2);
@@ -56,7 +56,7 @@ TEST(ArrayTest, Swap) {
     EXPECT_EQ(arr2[0], 1);
 }
 
-TEST(ArrayTest, Comparations) {
+TEST(ArrayTestHeap, Comparations) {
     array<int, 2> arr1 = {1,2};
     array<int, 2> arr2 = {1,2};
     array<int, 2> arr3 = {3,4};
@@ -70,9 +70,4 @@ TEST(ArrayTest, Comparations) {
 
 }
 }
-}
-
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }
