@@ -68,7 +68,7 @@ private:
     };
 
 public:
-    using iterator_category = std::forward_iterator_tag;
+
     using iterator  = iterator_basic<false>;
     using const_iterator = iterator_basic<true>;
 

@@ -4,8 +4,8 @@
 #include <catch2/benchmark/catch_benchmark.hpp>
 
 #include <forward_list>
-#include "mystd/forward_list_array.hpp"
-#include "mystd/forward_list_heap.hpp"
+#include "mystd/forward_list_fixed_array.hpp"
+#include "mystd/forward_list_linked_nodes.hpp"
 
 
 constexpr int N = 1000;

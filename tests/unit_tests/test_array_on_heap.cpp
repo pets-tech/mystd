@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "mystd/array_heap.hpp"
+#include "mystd/array_heap_mem.hpp"
 
 namespace my::heapbased {
 namespace testing {

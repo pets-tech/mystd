@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "mystd/array_stack.hpp"
+#include "mystd/array_stack_mem.hpp"
 
 namespace my::stackbased {
 namespace testing {
