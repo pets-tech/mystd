@@ -1,9 +1,14 @@
 #pragma once
 
+/*
+todo
+-remove size(), it is overhead for singly linked list
+*/
+
 #include <array>
 #include <type_traits>
 
-namespace my {
+namespace my::arraybased {
 
 /// @brief Array based forward list.
 template<typename T, size_t Capacity = 10>
@@ -26,23 +31,19 @@ private:
 
         iterator_basic() = default;
         iterator_basic(forward_list* list, size_t idx) : list_ptr(list), current_index(idx) {}
-
         reference operator*() const {
             return list_ptr->storage[current_index].data;
         }
-
         pointer operator->() const {
             return &(operator*());
         }
-
         iterator_basic& operator++() {
             if (current_index == Capacity) {
                 throw std::out_of_range("The iterator out of range");
             }
             current_index = list_ptr->storage[current_index].next;
             return *this;
-        }
-        
+        }    
         bool operator==(const iterator_basic& other) const = default;
     };
 
@@ -74,7 +75,6 @@ public:
         }
         storage[Capacity - 1].next = Capacity; // last element link!
     }
-
     ~forward_list() = default;
 
     // copy and copy sassignment
@@ -87,7 +87,6 @@ public:
         free_head = other.free_head;
         size_ = other.size_;
     }
-
     forward_list& operator=(const forward_list& other) {
         if (this != &other) {
             forward_list tmp(other);
@@ -106,7 +105,6 @@ public:
         other.free_head = 0;
         other.size_ = 0;
     }
-
     forward_list& operator=(forward_list&& other) noexcept {
         if (this != &other) {
             storage = std::move(other.storage);
@@ -124,11 +122,9 @@ public:
     void push_front(const value_type& data) {
         emplace_front(data);
     }
-
     void push_front(value_type&& data) {
         emplace_front(std::move(data));
     }
- 
     template<typename... Args>
     void emplace_front(Args&&... args) {
         if (size_ >= Capacity) {
@@ -157,9 +153,9 @@ public:
         
         --size_;
     }
-
-    // it is better implement erase(iterator) to avoid check for index in range
     void erase(size_type index) {
+        // it is better implement erase(iterator) to avoid check for index in range
+
         if (empty() || index >= Capacity) {
             throw std::runtime_error("can not erase: invalid index");
         }
@@ -179,7 +175,6 @@ public:
         }
         throw std::runtime_error("Index not found in the list");
     }
-
     reference front() noexcept { return storage[head].data; }
     const_reference front() const noexcept { return storage[head].data; }
 
@@ -198,9 +193,12 @@ public:
     // iterators
     iterator begin() noexcept { return iterator(this, head); }
     iterator end() noexcept { return iterator(this, Capacity); }
+
     const_iterator begin() const noexcept { return const_iterator(this, head); }
     const_iterator end() const noexcept { return const_iterator(this, Capacity); }
 
-};
+    const_iterator cbegin() const noexcept { return const_iterator(this, head); }
+    const_iterator cend() const noexcept { return const_iterator(this, Capacity); }
 
-}
+};
+} // namespace my::arraybased

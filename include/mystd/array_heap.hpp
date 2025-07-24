@@ -6,7 +6,7 @@
 #include <ostream>
 
 namespace my {
-namespace heap {
+namespace heapbased {
 
 template<typename T, size_t N>
 class array {

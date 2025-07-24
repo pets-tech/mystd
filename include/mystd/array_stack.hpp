@@ -6,7 +6,7 @@
 #include <ostream>
 
 namespace my {
-namespace stack {
+namespace stackbased {
 
 template<typename T, size_t N>
 class array {

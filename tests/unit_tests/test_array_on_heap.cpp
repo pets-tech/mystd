@@ -1,8 +1,7 @@
 #include <gtest/gtest.h>
 #include "mystd/array_heap.hpp"
 
-namespace my {
-namespace heap {
+namespace my::heapbased {
 namespace testing {
 
 class Mock {};
@@ -68,6 +67,5 @@ TEST(ArrayTestHeap, Comparations) {
     EXPECT_TRUE(arr3 > arr1);
 }
 
-}
 }
 }

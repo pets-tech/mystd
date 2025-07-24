@@ -1,8 +1,7 @@
 #include <gtest/gtest.h>
 #include "mystd/array_stack.hpp"
 
-namespace my {
-namespace stack {
+namespace my::stackbased {
 namespace testing {
 
 // construction
@@ -30,7 +29,7 @@ TEST(ArrayTestStack, InitializerList) {
 }
 
 TEST(ArrayTestStack, OutOfRange) {
-    EXPECT_THROW((my::stack::array<int, 2>{1,2,3}), std::out_of_range);
+    EXPECT_THROW((my::stackbased::array<int, 2>{1,2,3}), std::out_of_range);
 }
 
 // access
@@ -90,6 +89,5 @@ TEST(ArrayTestStack, Comparations) {
     EXPECT_TRUE(arr3 > arr1);
 }
 
-}
 }
 }
