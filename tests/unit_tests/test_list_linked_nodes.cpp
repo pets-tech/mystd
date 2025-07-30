@@ -41,14 +41,19 @@ TEST(ListTest, ForwardIteratorTraversal) {
     for (auto it = a.begin(), ite = a.end(); it != ite; ++it) {
         EXPECT_EQ(*it, expected++);
     }
+
+    auto it = a.end();
+    expected = 4;
+    while (it != a.begin()) {
+        --it;
+        EXPECT_EQ(*it, expected--);
+    }    
 }
 
 TEST(ListTest, ReverseIteratorTraversal) {
     list<int> a = {1, 2, 3, 4};
-    auto it = a.end();
     int expected = 4;
-    while (it != a.begin()) {
-        --it;
+    for (auto it = a.rbegin(), ite = a.rend(); it != ite; ++it) {
         EXPECT_EQ(*it, expected--);
     }
 }
@@ -116,6 +121,11 @@ TEST(ListTest, ConstIterator) {
     EXPECT_EQ(*it, 5);
     ++it;
     EXPECT_EQ(*it, 6);
+
+    auto rit = a.rbegin();
+    EXPECT_EQ(*rit, 7);
+    ++rit;
+    EXPECT_EQ(*rit, 6);
 }
 
 }

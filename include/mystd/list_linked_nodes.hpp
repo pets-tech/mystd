@@ -4,6 +4,7 @@
 #include <iterator>
 #include <stdexcept>
 #include <utility>
+#include <iterator>
 
 namespace my::heapbased {
 
@@ -33,6 +34,7 @@ private:
     template <bool IsConst>
     class iterator_basic {
     public:
+        using value_type = T;
         using node_type = std::conditional_t<IsConst, const Node, Node>;
         using list_type = std::conditional_t<IsConst, const list, list>;
         using reference = std::conditional_t<IsConst, const T&, T&>;
@@ -96,6 +98,8 @@ private:
 public:
     using iterator = iterator_basic<false>;
     using const_iterator = iterator_basic<true>;
+    using reverse_iterator = std::reverse_iterator<iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
     // ctor
     list() = default;
@@ -171,6 +175,15 @@ public:
 
     const_iterator cbegin() const noexcept { return const_iterator(this, head_); }
     const_iterator cend() const noexcept { return const_iterator(this, nullptr); }
+
+    reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
+    reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
+
+    const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(end()); }
+    const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
+
+    const_reverse_iterator crbegin() noexcept { return const_reverse_iterator(end()); }
+    const_reverse_iterator crend() noexcept { return const_reverse_iterator(begin()); }
 
     // capacity
     bool empty() const noexcept { return size_ == 0; }
