@@ -6,16 +6,16 @@ namespace my::testing {
 
 class Mock {};
 
-TEST(vectorTestHeap, DefaultConstructor) {
+TEST(VectorTest, DefaultConstructor) {
   vector<int, 3> a1;
   vector<float, 3> a2;
   vector<double, 3> a3;
   vector<Mock, 100> a4;
   vector<int, 1'000'000'000> a_high;
-  EXPECT_EQ(a_high.size(), 1'000'000'000);
+  EXPECT_EQ(a_high.capacity(), 1'000'000'000);
 }
 
-TEST(vectorTestHeap, Copy) {
+TEST(VectorTest, Copy) {
   vector<int, 3> a = {1, 2, 3};
   vector<int, 3> b(a);
   vector<int, 3> c = a;
@@ -26,7 +26,7 @@ TEST(vectorTestHeap, Copy) {
   EXPECT_EQ(a[2], c[2]);
 }
 
-TEST(vectorTestHeap, Iterators) {
+TEST(VectorTest, Iterators) {
   vector<int, 3> a = {1, 2, 3};
   int i = 0;
   for (const auto& el : a) {
@@ -39,25 +39,27 @@ TEST(vectorTestHeap, Iterators) {
 }
 
 // modification
-TEST(vectorTestHeap, Fill) {
+TEST(VectorTest, Fill) {
   vector<int, 13> arr;
   arr.fill(42);
   EXPECT_EQ(arr[0], 42);
   EXPECT_EQ(arr[12], 42);
 }
 
-TEST(vectorTestHeap, Swap) {
+TEST(VectorTest, Swap) {
   vector<int, 2> arr1{1, 2};
   vector<int, 2> arr2{3, 4};
   arr1.swap(arr2);
   EXPECT_EQ(arr1[0], 3);
+  EXPECT_EQ(arr1[1], 4);
   EXPECT_EQ(arr2[0], 1);
+  EXPECT_EQ(arr2[1], 2);
 }
 
-TEST(vectorTestHeap, Comparations) {
-  vector<int, 2> arr1 = {1, 2};
-  vector<int, 2> arr2 = {1, 2};
-  vector<int, 2> arr3 = {3, 4};
+TEST(VectorTest, Comparations) {
+  vector<int> arr1 = {1, 2};
+  vector<int> arr2 = {1, 2};
+  vector<int> arr3 = {3, 4};
   EXPECT_TRUE(arr1 == arr2);
   EXPECT_FALSE(arr1 == arr3);
   EXPECT_TRUE(arr1 >= arr2);
