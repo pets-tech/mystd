@@ -2,10 +2,10 @@
 
 #include <array>
 
-#include "mystd/array_heap_mem.hpp"
+#include "mystd/vector.hpp"
 
 static void BM_ArrayFill(benchmark::State& state) {
-  my::vector<int, 1000000> arr;
+  my::vector<int> arr;
   for (auto _ : state) {
     arr.fill(42);
     benchmark::DoNotOptimize(arr.data());
@@ -14,7 +14,7 @@ static void BM_ArrayFill(benchmark::State& state) {
 BENCHMARK(BM_ArrayFill);
 
 static void BM_STDArrayFill(benchmark::State& state) {
-  std::array<int, 1000000> arr;
+  std::vector<int> arr;
   for (auto _ : state) {
     arr.fill(42);
     benchmark::DoNotOptimize(arr.data());
@@ -23,7 +23,7 @@ static void BM_STDArrayFill(benchmark::State& state) {
 BENCHMARK(BM_STDArrayFill);
 
 static void BM_ArrayAccess(benchmark::State& state) {
-  my::vector<int, 1000000> arr;
+  my::vector<int> arr;
   arr.fill(1);
   volatile int sum = 0;
   for (auto _ : state) {
@@ -35,7 +35,7 @@ static void BM_ArrayAccess(benchmark::State& state) {
 BENCHMARK(BM_ArrayAccess);
 
 static void BM_STDArrayAccess(benchmark::State& state) {
-  std::array<int, 1000000> arr;
+  std::vector<int> arr;
   arr.fill(1);
   volatile int sum = 0;
   for (auto _ : state) {
@@ -47,7 +47,7 @@ static void BM_STDArrayAccess(benchmark::State& state) {
 BENCHMARK(BM_STDArrayAccess);
 
 static void BM_ArraySwap(benchmark::State& state) {
-  my::vector<int, 1000> arr1, arr2;
+  my::vector<int> arr1, arr2;
   for (auto _ : state) {
     arr1.swap(arr2);
     benchmark::DoNotOptimize(arr1.data());
@@ -56,7 +56,7 @@ static void BM_ArraySwap(benchmark::State& state) {
 BENCHMARK(BM_ArraySwap);
 
 static void BM_STDArraySwap(benchmark::State& state) {
-  std::array<int, 1000> arr1, arr2;
+  std::array<int> arr1, arr2;
   for (auto _ : state) {
     arr1.swap(arr2);
     benchmark::DoNotOptimize(arr1.data());
