@@ -1,0 +1,168 @@
+name: mystd ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Build (${{ matrix.compiler }}, ${{ matrix.build_type }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc]
+        build_type: [Debug]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache apt
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/apt
+          key: ${{ runner.os }}-apt-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - name: Install ccache and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ccache build-essential cmake libgtest-dev libbenchmark-dev catch2
+
+      - name: Cache ccache
+        uses: actions/cache@v3
+        id: ccache-cache
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('**/CMakeLists.txt', '**/src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: Configure ccache
+        run: |
+          echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
+          echo "/usr/lib/ccache" >> $GITHUB_PATH
+          ccache --show-stats
+
+      - name: Set up compiler
+        run: |
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            sudo apt-get install -y g++-14
+            echo "CC=gcc-14" >> $GITHUB_ENV
+            echo "CXX=g++-14" >> $GITHUB_ENV
+          elif [ "${{ matrix.compiler }}" = "clang" ]; then
+            sudo apt-get install -y clang-18
+            echo "CC=clang-18" >> $GITHUB_ENV
+            echo "CXX=clang++-18" >> $GITHUB_ENV
+          fi
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_COVERAGE=ON
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} -- -j 4
+
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.compiler }}-${{ matrix.build_type }}
+          path: build
+          retention-days: 1
+
+      - name: Show ccache stats
+        run: ccache --show-stats
+
+  test:
+    name: Run Tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-gcc-Debug
+          path: build
+
+      - name: Run Unit Tests
+        run: ctest -C Debug --output-on-failure
+
+  lint:
+    name: Code Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang-format
+        run: sudo apt-get install -y clang-format-18
+      - name: Run clang-format
+        run: |
+          find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\)' -exec clang-format-18 --dry-run --Werror {} \;
+
+  coverage:
+    name: Test Coverage
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lcov ccache gcc-14 g++-14
+
+      - name: Use matching gcov version
+        run: |
+          echo "Using gcov version:"
+          gcov --version
+
+      - name: Cache ccache
+        uses: actions/cache@v3
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('**/CMakeLists.txt', '**/src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: Configure ccache
+        run: |
+          echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
+          echo "/usr/lib/ccache" >> $GITHUB_PATH
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-gcc-Debug
+          path: build
+
+      - name: Restore execute permissions for an artifacts
+        run: |
+          find build -type f -exec chmod u+x {} \;
+
+      - name: Run tests and generate coverage
+        run: |
+          ctest --test-dir build -C Debug --output-on-failure
+
+          geninfo build \
+            --output-filename coverage.info \
+            --gcov-tool /usr/bin/gcov-14 \
+            --ignore-errors mismatch,source \
+            --rc geninfo_unexecuted_blocks=1
+
+          lcov --remove coverage.info '/usr/*' '*/tests/unit-tests/*' --output-file coverage.info
+          genhtml coverage.info --output-directory coverage_report
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage_report
+          retention-days: 7
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: pets-tech/mystd
+          verbose: true
