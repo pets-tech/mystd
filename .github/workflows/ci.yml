@@ -1,0 +1,71 @@
+name: mystd CI
+
+on:
+  pull_request:
+  push:
+    branches: [ master, ci-setup ]
+
+# [x] build
+# [ ] static analysis
+# [x] unit tests
+# [ ] intergration tests
+# [ ] artifacts
+# [ ] deploy artifacts to storage or servers
+# [ ] performance and something
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        compiler:
+          - gcc-13
+          - gcc-14
+          - clang-18
+          - clang-19
+        build_type: [Debug, Release]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build lcov
+          sudo apt-get install -y libgtest-dev libbenchmark-dev catch2
+
+          case "${{ matrix.compiler }}" in
+            gcc-13)
+              sudo apt-get install -y gcc-13 g++-13
+              echo "CC=gcc-13" >> $GITHUB_ENV
+              echo "CXX=g++-13" >> $GITHUB_ENV
+              ;;
+            gcc-14)
+              sudo apt-get install -y gcc-14 g++-14
+              echo "CC=gcc-14" >> $GITHUB_ENV
+              echo "CXX=g++-14" >> $GITHUB_ENV
+              ;;
+            clang-18)
+              sudo apt-get install -y clang-18 lld-18
+              echo "CC=clang-18" >> $GITHUB_ENV
+              echo "CXX=clang++-18" >> $GITHUB_ENV
+              ;;
+            clang-19)
+              sudo apt-get install -y clang-19 lld-19
+              echo "CC=clang-19" >> $GITHUB_ENV
+              echo "CXX=clang++-19" >> $GITHUB_ENV
+              ;;
+          esac
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Run unit tests
+        run: ctest --test-dir build --output-on-failure
