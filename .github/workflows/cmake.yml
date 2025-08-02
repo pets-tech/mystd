@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        compiler: [g++-13, g++-14]
+        compiler: [g++-13, g++-14, clang++-18, clang++-19]
         build-type: [Debug, Release]
       fail-fast: false
 
@@ -45,22 +45,36 @@ jobs:
       - name: Setup Ubuntu
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ${{ matrix.compiler }} libgtest-dev libbenchmark-dev catch2
-          COMPILER_VERSION=${{ matrix.compiler }}
-          VERSION=${COMPILER_VERSION#g++-}
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${VERSION} 100
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${VERSION} 100
-          update-alternatives --display g++ || echo "g++ alternatives setup failed"
-          update-alternatives --display gcc || echo "gcc alternatives setup failed"
+          sudo apt-get install -y software-properties-common curl gnupg
+
+          if [[ "${{ matrix.compiler }}" == clang++-* ]]; then
+            VERSION=${{ matrix.compiler#clang++- }}
+            wget https://apt.llvm.org/llvm.sh
+            chmod +x llvm.sh
+            sudo ./llvm.sh ${VERSION} all
+            sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${VERSION} 100
+            sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${VERSION} 100
+          fi
+
+          if [[ "${{ matrix.compiler }}" == g++-* ]]; then
+            VERSION=${{ matrix.compiler#g++- }}
+            sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+            sudo apt-get update
+            sudo apt-get install -y gcc-${VERSION} g++-${VERSION}
+            sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${VERSION} 100
+            sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${VERSION} 100
+          fi
+
+          sudo apt-get install -y build-essential cmake libgtest-dev libbenchmark-dev catch2
 
       - name: Check compiler versions
         run: |
           gcc --version || echo "gcc not found"
           g++ --version || echo "g++ not found"
+          clang --version || echo "clang not found"
+          clang++ --version || echo "clang++ not found"
           cmake --version
-        shell: bash
 
       - name: Cache build directory
         uses: actions/cache@v4
@@ -74,8 +88,11 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake -S .. -B . -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
-        shell: bash
+          if [[ "${{ matrix.compiler }}" == g++-* ]]; then
+            cmake -S .. -B . -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+          elif [[ "${{ matrix.compiler }}" == clang++-* ]]; then
+            cmake -S .. -B . -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+          fi
 
       - name: Build
         run: |
