@@ -14,36 +14,18 @@ on:
 # performance and something
 
 jobs:
-  build:
-    name: Build ${{ matrix.build-type }} on ${{ matrix.os }} with ${{ matrix.compiler }}
+
+  toolchain:
+    name: Setup Toolchain ${{ matrix.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest]
         compiler: [g++-13, g++-14, clang++-18, clang++-19]
-        build-type: [Debug, Release]
       fail-fast: false
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Cache apt packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            /var/cache/apt
-            !/var/cache/apt/archives/lock
-            !/var/cache/apt/archives/partial
-            /var/lib/apt/lists
-            !/var/lib/apt/lists/lock
-            !/var/lib/apt/lists/partial
-          key: ${{ matrix.os }}-apt-${{ matrix.compiler }}-${{ hashFiles('**/CMakeLists.txt') }}
-          restore-keys: |
-            ${{ matrix.os }}-apt-${{ matrix.compiler }}-
-
-      - name: Setup Ubuntu
-        if: matrix.os == 'ubuntu-latest'
+      - name: Setup compilers
         run: |
           sudo apt-get update
           sudo apt-get install -y software-properties-common curl gnupg
@@ -59,7 +41,7 @@ jobs:
           fi
 
           if [[ "${{ matrix.compiler }}" == g++-* ]]; then
-            VERSION=${{ matrix.compiler }}
+            VERSION="${{ matrix.compiler }}"
             VERSION="${VERSION#g++-}"
             sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
             sudo apt-get update
@@ -70,21 +52,50 @@ jobs:
 
           sudo apt-get install -y build-essential cmake libgtest-dev libbenchmark-dev catch2
 
-      - name: Check compiler versions
+      - name: Package toolchain info
         run: |
-          gcc --version || echo "gcc not found"
-          g++ --version || echo "g++ not found"
-          clang --version || echo "clang not found"
-          clang++ --version || echo "clang++ not found"
-          cmake --version
+          mkdir -p toolchain
+          echo "${{ matrix.compiler }}" > toolchain/compiler.txt
+          gcc --version || true > toolchain/gcc.txt
+          g++ --version || true > toolchain/gpp.txt
+          clang --version || true > toolchain/clang.txt
+          clang++ --version || true > toolchain/clangpp.txt
 
-      - name: Cache build directory
-        uses: actions/cache@v4
+      - name: Upload toolchain artifacts
+        uses: actions/upload-artifact@v4
         with:
-          path: build
-          key: ${{ matrix.os }}-build-${{ matrix.compiler }}-${{ matrix.build-type }}-${{ github.sha }}
-          restore-keys: |
-            ${{ matrix.os }}-build-${{ matrix.compiler }}-${{ matrix.build-type }}-
+          name: toolchain-${{ matrix.os }}-${{ matrix.compiler }}
+          path: toolchain/
+          retention-days: 1
+
+  build:
+    name: Build ${{ matrix.build-type }} with ${{ matrix.compiler }}
+    needs: toolchain
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        compiler: [g++-13, g++-14, clang++-18, clang++-19]
+        build-type: [Debug, Release]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download toolchain artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: toolchain-${{ matrix.os }}-${{ matrix.compiler }}
+          path: toolchain
+
+      - name: Check compiler version
+        run: |
+          echo "Compiler: $(cat toolchain/compiler.txt)"
+          cat toolchain/gcc.txt || true
+          cat toolchain/gpp.txt || true
+          cat toolchain/clang.txt || true
+          cat toolchain/clangpp.txt || true
 
       - name: Configure CMake
         run: |
@@ -100,16 +111,110 @@ jobs:
         run: |
           cd build
           cmake --build . --parallel $(nproc)
-        shell: bash
 
       - name: Inspect build directory
         if: always()
         run: |
           ls -laR build || echo "Failed to list build directory"
-          find build -type l -ls || echo "No symbolic links found"
-          du -sh build || echo "Failed to calculate build directory size"
-          chmod -R u+rwX build || echo "Failed to set permissions"
-        shell: bash
+
+
+
+  # build:
+  #   name: Build ${{ matrix.build-type }} on ${{ matrix.os }} with ${{ matrix.compiler }}
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os: [ubuntu-latest]
+  #       compiler: [g++-13, g++-14, clang++-18, clang++-19]
+  #       build-type: [Debug, Release]
+  #     fail-fast: false
+
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: Cache apt packages
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           /var/cache/apt
+  #           !/var/cache/apt/archives/lock
+  #           !/var/cache/apt/archives/partial
+  #           /var/lib/apt/lists
+  #           !/var/lib/apt/lists/lock
+  #           !/var/lib/apt/lists/partial
+  #         key: ${{ matrix.os }}-apt-${{ matrix.compiler }}-${{ hashFiles('**/CMakeLists.txt') }}
+  #         restore-keys: |
+  #           ${{ matrix.os }}-apt-${{ matrix.compiler }}-
+
+  #     - name: Setup Ubuntu
+  #       if: matrix.os == 'ubuntu-latest'
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install -y software-properties-common curl gnupg
+
+  #         if [[ "${{ matrix.compiler }}" == clang++-* ]]; then
+  #           VERSION="${{ matrix.compiler }}"
+  #           VERSION="${VERSION#clang++-}"
+  #           wget https://apt.llvm.org/llvm.sh
+  #           chmod +x llvm.sh
+  #           sudo ./llvm.sh ${VERSION} all
+  #           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${VERSION} 100
+  #           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${VERSION} 100
+  #         fi
+
+  #         if [[ "${{ matrix.compiler }}" == g++-* ]]; then
+  #           VERSION=${{ matrix.compiler }}
+  #           VERSION="${VERSION#g++-}"
+  #           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  #           sudo apt-get update
+  #           sudo apt-get install -y gcc-${VERSION} g++-${VERSION}
+  #           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${VERSION} 100
+  #           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${VERSION} 100
+  #         fi
+
+  #         sudo apt-get install -y build-essential cmake libgtest-dev libbenchmark-dev catch2
+
+  #     - name: Check compiler versions
+  #       run: |
+  #         gcc --version || echo "gcc not found"
+  #         g++ --version || echo "g++ not found"
+  #         clang --version || echo "clang not found"
+  #         clang++ --version || echo "clang++ not found"
+  #         cmake --version
+
+  #     - name: Cache build directory
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: build
+  #         key: ${{ matrix.os }}-build-${{ matrix.compiler }}-${{ matrix.build-type }}-${{ github.sha }}
+  #         restore-keys: |
+  #           ${{ matrix.os }}-build-${{ matrix.compiler }}-${{ matrix.build-type }}-
+
+  #     - name: Configure CMake
+  #       run: |
+  #         mkdir -p build
+  #         cd build
+  #         if [[ "${{ matrix.compiler }}" == g++-* ]]; then
+  #           cmake -S .. -B . -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+  #         elif [[ "${{ matrix.compiler }}" == clang++-* ]]; then
+  #           cmake -S .. -B . -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+  #         fi
+
+  #     - name: Build
+  #       run: |
+  #         cd build
+  #         cmake --build . --parallel $(nproc)
+  #       shell: bash
+
+  #     - name: Inspect build directory
+  #       if: always()
+  #       run: |
+  #         ls -laR build || echo "Failed to list build directory"
+  #         find build -type l -ls || echo "No symbolic links found"
+  #         du -sh build || echo "Failed to calculate build directory size"
+  #         chmod -R u+rwX build || echo "Failed to set permissions"
+  #       shell: bash
 
   # test:
   #   name: Test (${{ matrix.compiler }})
