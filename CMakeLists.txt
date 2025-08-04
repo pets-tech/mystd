@@ -44,12 +44,27 @@ if(NOT Catch2_FOUND)
     message(FATAL_ERROR "Catch2 not found")
 endif()
 
-find_package(Doxygen REQUIRED)
-configure_file(
-    docs/Doxyfile
-    ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-    @ONLY
-)
+find_package(Doxygen QUIET)
+if(Docxygen_FOUND)
+    configure_file(
+        docs/Doxyfile
+        ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+        @ONLY
+    )
+
+    add_custom_command(
+        OUTPUT ${CMAKE_BINARY_DIR}/docs/doxygen/xml/index.xml
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/docs/doxygen
+        COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_BINARY_DIR}/Doxyfile
+        DEPENDS ${CMAKE_SOURCE_DIR}/include/mystd/
+        COMMENT "Generating Doxygen XML..."
+    )
+
+    add_custom_target(docs
+        DEPENDS ${CMAKE_BINARY_DIR}/docs/doxygen/xml/index.xml
+        COMMAND ${SPHINX_EXECUTABLE} -M html ${CMAKE_SOURCE_DIR}/docs/sphinx ${CMAKE_BINARY_DIR}/docs/sphinx
+    )
+endif()
 
 include_directories(include)
 
@@ -92,16 +107,3 @@ if(ENABLE_COVERAGE)
         message(WARNING "lcov or genhtml not found, coverage report generation disabled")
     endif()
 endif()
-
-add_custom_command(
-    OUTPUT ${CMAKE_BINARY_DIR}/docs/doxygen/xml/index.xml
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/docs/doxygen
-    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_BINARY_DIR}/Doxyfile
-    DEPENDS ${CMAKE_SOURCE_DIR}/include/mystd/
-    COMMENT "Generating Doxygen XML..."
-)
-
-add_custom_target(docs
-    DEPENDS ${CMAKE_BINARY_DIR}/docs/doxygen/xml/index.xml
-    COMMAND ${SPHINX_EXECUTABLE} -M html ${CMAKE_SOURCE_DIR}/docs/sphinx ${CMAKE_BINARY_DIR}/docs/sphinx
-)
