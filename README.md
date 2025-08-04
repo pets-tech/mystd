@@ -1,7 +1,7 @@
 
 mystd is a stl-like library.
 
-[![codecov](https://codecov.io/gh/pets-tech/mystd/graph/badge.svg?token=92FQ42MXUZ)](https://codecov.io/gh/pets-tech/mystd) [![mystd CI](https://github.com/pets-tech/mystd/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/pets-tech/mystd/actions/workflows/ci.yml)
+[![GitHub Pages](https://img.shields.io/badge/docs-online-blue?logo=github)](https://pets-tech.github.io/mystd/) [![codecov](https://codecov.io/gh/pets-tech/mystd/graph/badge.svg?token=92FQ42MXUZ)](https://codecov.io/gh/pets-tech/mystd) [![mystd CI](https://github.com/pets-tech/mystd/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/pets-tech/mystd/actions/workflows/ci.yml)
 
 
 ## Features
