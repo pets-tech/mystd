@@ -1,0 +1,29 @@
+PROJECT_NAME           = "mystd"
+PROJECT_NUMBER         = "1.0"
+PROJECT_BRIEF          = "a stl-like library"
+
+OUTPUT_DIRECTORY       = docs/
+CREATE_SUBDIRS         = NO
+ALLOW_UNICODE_NAMES    = YES
+
+INPUT                  = include/ src/
+RECURSIVE              = YES
+EXCLUDE_PATTERNS       = */tests/* */third_party/*
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_PACKAGE        = YES
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+
+GENERATE_LATEX         = NO
+
+HAVE_DOT               = YES
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = YES
+
+OPTIMIZE_OUTPUT_FOR_C  = NO
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = YES

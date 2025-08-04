@@ -3,37 +3,6 @@ project(mystd)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMAND on)
-
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug)
-endif()
-message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-
-# Compiler flags
-if(CMAKE_BUILD_TYPE STREQUAL Release)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-elseif(CMAKE_BUILD_TYPE STREQUAL Debug)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g0 -O0 -fsanitize=address,undefined -fno-omit-frame-pointer")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined")
-endif()
-
-# Coverage flags
-option(ENABLE_COVERAGE "Enable code coverage" OFF)
-if(ENABLE_COVERAGE AND CMAKE_BUILD_TYPE STREQUAL Debug)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
-    else()
-        message(WARNING "Coverage is only supported with GCC or Clang")
-    endif()
-endif()
-
-cmake_minimum_required(VERSION 3.14)
-project(mystd)
-
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Default build type
@@ -74,6 +43,13 @@ find_package(Catch2 3 QUIET)
 if(NOT Catch2_FOUND)
     message(FATAL_ERROR "Catch2 not found")
 endif()
+
+find_package(Doxygen REQUIRED)
+configure_file(
+    docs/Doxyfile
+    ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    @ONLY
+)
 
 include_directories(include)
 
@@ -116,3 +92,16 @@ if(ENABLE_COVERAGE)
         message(WARNING "lcov or genhtml not found, coverage report generation disabled")
     endif()
 endif()
+
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/docs/doxygen/xml/index.xml
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/docs/doxygen
+    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_BINARY_DIR}/Doxyfile
+    DEPENDS ${CMAKE_SOURCE_DIR}/include/mystd/
+    COMMENT "Generating Doxygen XML..."
+)
+
+add_custom_target(docs
+    DEPENDS ${CMAKE_BINARY_DIR}/docs/doxygen/xml/index.xml
+    COMMAND ${SPHINX_EXECUTABLE} -M html ${CMAKE_SOURCE_DIR}/docs/sphinx ${CMAKE_BINARY_DIR}/docs/sphinx
+)
