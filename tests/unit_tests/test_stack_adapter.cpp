@@ -11,6 +11,17 @@
 
 namespace my::testing {
 
+TEST(StackAdapterTest, Initialization) {
+  std::vector<int> v = {1, 2, 3};
+  my::stack<int, std::vector<int>> s1(v);
+
+  EXPECT_EQ(s1.top(), 3);
+  s1.pop();
+  EXPECT_EQ(s1.top(), 2);
+  s1.pop();
+  EXPECT_EQ(s1.top(), 1);
+}
+
 TEST(StackAdapterTest, CopyAndMove) {
   my::stack<int> s1;
   s1.push(1);
