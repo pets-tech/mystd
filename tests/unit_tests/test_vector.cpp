@@ -26,6 +26,28 @@ TEST(VectorTest, Copy) {
   EXPECT_EQ(a[2], c[2]);
 }
 
+TEST(VectorTest, ObserversAndModifiers) {
+  vector<int> v;
+  EXPECT_TRUE(v.empty());
+  EXPECT_EQ(v.size(), 0);
+
+  v.push_back(1);
+  EXPECT_FALSE(v.empty());
+  EXPECT_EQ(v.size(), 1);
+  EXPECT_EQ(v.back(), 1);
+  v.pop_back();
+  EXPECT_EQ(v.size(), 0);
+}
+
+TEST(VectorTest, Reallocation) {
+  vector<int> v;
+
+  for (size_t i = 0; i < 100; ++i) {
+    v.push_back(i);
+  }
+  EXPECT_EQ(v.size(), 100);
+}
+
 TEST(VectorTest, Iterators) {
   vector<int, 3> a = {1, 2, 3};
   int i = 0;
@@ -36,14 +58,6 @@ TEST(VectorTest, Iterators) {
   for (auto it = a.begin(); it != a.end(); ++it) {
     EXPECT_EQ(*it, a[i++]);
   }
-}
-
-// modification
-TEST(VectorTest, Fill) {
-  vector<int, 13> arr;
-  arr.fill(42);
-  EXPECT_EQ(arr[0], 42);
-  EXPECT_EQ(arr[12], 42);
 }
 
 TEST(VectorTest, Swap) {

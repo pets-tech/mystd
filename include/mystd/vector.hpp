@@ -8,7 +8,7 @@
 namespace my {
 
 const size_t CAPACITY = 32;
-const size_t REALLICATION_FACTOR = 1.5;
+const float REALLOCATION_FACTOR = 1.5;
 
 template <typename T, size_t Capacity = CAPACITY>
 class vector {
@@ -28,7 +28,7 @@ class vector {
   pointer data_;
   size_type size_ = 0;
   size_type capacity_ = Capacity;
-  size_type reallocation_factor_ = REALLICATION_FACTOR;
+  float reallocation_factor_ = REALLOCATION_FACTOR;
 
   void reallocate(size_type new_capacity) {
     value_type* new_data = new value_type[new_capacity];
@@ -41,7 +41,7 @@ class vector {
  public:
   // contruction and assignment
 
-  vector() : data_(new value_type[Capacity]), size_(Capacity), capacity_(Capacity) {}
+  vector() : data_(new value_type[Capacity]), size_(0), capacity_(Capacity) {}
 
   // initializer list
   vector(std::initializer_list<value_type> init)
@@ -54,22 +54,28 @@ class vector {
   // copy and copy assigment
   vector(const vector& other) {
     const size_t other_size = other.size();
-    data_ = new T[other_size];
+    const size_t other_capacity = other.capacity();
+
+    data_ = new T[other_capacity];
     for (size_t i = 0; i < other_size; ++i) {
       data_[i] = other.data_[i];
     }
     size_ = other_size;
+    capacity_ = other_capacity;
   }
 
   vector& operator=(const vector& other) {
     if (this != &other) {
       const size_t other_size = other.size();
+      const size_t other_capacity = other.capacity();
+
       delete[] data_;
-      data_ = new T[other_size];
+      data_ = new T[other_capacity];
       for (size_t i = 0; i < other_size; ++i) {
         data_[i] = other.data_[i];
       }
       size_ = other_size;
+      capacity_ = other_capacity;
     }
     return *this;
   }
@@ -95,26 +101,50 @@ class vector {
   }
 
   // capacity
+
   [[nodiscard]] bool empty() const noexcept { return size_ == 0; }
+
   size_type size() const noexcept { return size_; }
+
   size_type capacity() const noexcept { return capacity_; }
 
-  // element access
+  // observers
 
   pointer data() { return data_; }
+
   const_pointer data() const { return data_; }
 
   reference operator[](size_type index) noexcept { return data_[index]; }
+
   const_reference operator[](size_type index) const noexcept { return data_[index]; }
 
   reference at(size_type index) {
     if (index >= size_) throw std::out_of_range("");
     return data_[index];
   }
+
   const_reference at(size_type index) const {
     if (index >= size_) throw std::out_of_range("");
     return data_[index];
   }
+
+  reference back() { return at(size_ - 1); }
+
+  const_reference back() const { return at(size_ - 1); }
+
+  // modifiers
+
+  void push_back(const_reference value) {
+    if (capacity_ < size_ + 1) {
+      reallocate(capacity_ * reallocation_factor_);
+    }
+    data_[size_] = value;
+    ++size_;
+  }
+
+  void pop_back() { --size_; }
+
+  void insert(const_reference value) { assert("TODO Implement me, please"); }
 
   // iterators
 
@@ -125,12 +155,6 @@ class vector {
   iterator end() { return data_ + size_; }
 
   const_iterator end() const { return data_ + size_; }
-
-  void fill(value_type value) {
-    for (size_t i = 0; i < size_; ++i) {
-      data_[i] = value;
-    }
-  }
 
   void swap(vector& other) noexcept {
     std::swap(data_, other.data_);
