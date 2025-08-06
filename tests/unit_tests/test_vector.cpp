@@ -41,11 +41,19 @@ TEST(VectorTest, ObserversAndModifiers) {
 
 TEST(VectorTest, Reallocation) {
   vector<int> v;
+  EXPECT_EQ(v.capacity(), 25);
 
-  for (size_t i = 0; i < 100; ++i) {
+  for (size_t i = 0; i < 30; ++i) {
     v.push_back(i);
   }
-  EXPECT_EQ(v.size(), 100);
+  EXPECT_EQ(v.size(), 30);
+  EXPECT_EQ(v.capacity(), 50);
+
+  for (size_t i = 0; i < 30; ++i) {
+    v.push_back(i);
+  }
+  EXPECT_EQ(v.size(), 60);
+  EXPECT_EQ(v.capacity(), 100);
 }
 
 TEST(VectorTest, Iterators) {

@@ -7,8 +7,8 @@
 
 namespace my {
 
-const size_t CAPACITY = 32;
-const float REALLOCATION_FACTOR = 1.5;
+const size_t CAPACITY = 25;
+const float REALLOCATION_FACTOR = 2.0;
 
 template <typename T, size_t Capacity = CAPACITY>
 class vector {
