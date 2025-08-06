@@ -4,7 +4,10 @@
 #include <string>
 #include <vector>
 
+#include "mystd/list_fixed_array.hpp"
+#include "mystd/list_linked_nodes.hpp"
 #include "mystd/stack_adapter.hpp"
+#include "mystd/vector.hpp"
 
 namespace my::testing {
 
@@ -78,6 +81,26 @@ TEST(StackAdapterTest, CustomTypes) {
   EXPECT_EQ(s.top().a, 42);
   s.pop();
   EXPECT_TRUE(s.empty());
+}
+
+TEST(StackAdapterTest, MyStdImplementations) {
+  stack<int, my::vector<int>> s1;
+  s1.push(1);
+  EXPECT_EQ(s1.top(), 1);
+  s1.pop();
+  EXPECT_TRUE(s1.empty());
+
+  stack<int, my::arraybased::list<int>> s2;
+  s2.push(1);
+  EXPECT_EQ(s2.top(), 1);
+  s2.pop();
+  EXPECT_TRUE(s2.empty());
+
+  stack<int, my::heapbased::list<int>> s3;
+  s3.push(1);
+  EXPECT_EQ(s3.top(), 1);
+  s3.pop();
+  EXPECT_TRUE(s3.empty());
 }
 
 }  // namespace my::testing
