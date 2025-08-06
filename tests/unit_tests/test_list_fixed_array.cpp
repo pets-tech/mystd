@@ -17,6 +17,15 @@ TEST(ListTest, Initialization) {
   EXPECT_EQ(b.back(), 3.0);
 };
 
+TEST(ListTest, ListInterfaceConsistancy) {
+  my::arraybased::list<int> l1 = {1, 2, 3};
+  //                              ^head
+  //                                  ^tail
+
+  EXPECT_EQ(l1.front(), 1);
+  EXPECT_EQ(l1.back(), 3);
+}
+
 TEST(ListTest, PushAndPop) {
   list<float> a;
   a.push_back(1.0);

@@ -10,6 +10,15 @@ TEST(ListTest, DefaultInitialization) {
   EXPECT_EQ(a.size(), 0);
 }
 
+TEST(ListTest, ListInterfaceConsistancy) {
+  my::heapbased::list<int> l2 = {1, 2, 3};
+  //                             ^head
+  //                                 ^tail
+
+  EXPECT_EQ(l2.front(), 1);
+  EXPECT_EQ(l2.back(), 3);
+}
+
 TEST(ListTest, InitializerListConstruction) {
   list<int> a = {10, 20, 30};
   EXPECT_FALSE(a.empty());
