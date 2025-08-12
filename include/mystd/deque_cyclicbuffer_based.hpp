@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <cstddef>
 #include <iterator>
 #include <stdexcept>
@@ -10,212 +11,231 @@ template <typename T>
 class deque {
  public:
   using value_type = T;
-  using size_type = std::size_t;
   using reference = value_type&;
   using const_reference = const value_type&;
   using pointer = value_type*;
   using const_pointer = const value_type*;
-  using difference_type = std::ptrdiff_t;
+  using size_type = std::size_t;
 
  private:
   pointer buffer_ = nullptr;
-  size_type cap_ = 0;
+  size_type capacity_ = 0;
   size_type size_ = 0;
   size_type head_ = 0;
 
-  static constexpr size_type min_capacity = 8;
+  static constexpr size_type INITIAL_CAPACITY = 8;
 
-  size_type phys_index(size_type logical) const noexcept { return (head_ + logical) % cap_; }
+  size_type index(size_type offset) const noexcept { return (head_ + offset) % capacity_; }
 
-  void grow() {
-    size_type new_cap = cap_ ? cap_ * 2 : min_capacity;
-    pointer new_buf = new value_type[new_cap];
+  void reallocate() {
+    size_type new_capacity = capacity_ ? capacity_ * 2 : INITIAL_CAPACITY;
+    pointer new_buffer = new value_type[new_capacity];
 
     for (size_type i = 0; i < size_; ++i) {
-      new_buf[i] = std::move(buffer_[phys_index(i)]);
+      new_buffer[i] = std::move(buffer_[index(i)]);
     }
 
     delete[] buffer_;
-    buffer_ = new_buf;
-    cap_ = new_cap;
+    buffer_ = new_buffer;
+    capacity_ = new_capacity;
     head_ = 0;
   }
 
- public:
-  deque() = default;
-
-  explicit deque(size_type count, const T& value = T()) {
-    cap_ = std::max(count, min_capacity);
-    buffer_ = new value_type[cap_];
-    for (size_type i = 0; i < count; ++i) {
-      buffer_[i] = value;
-    }
-    size_ = count;
-  }
-
-  deque(const deque& other) {
-    cap_ = other.cap_;
-    size_ = other.size_;
-    head_ = other.head_;
-    buffer_ = new value_type[cap_];
-    for (size_type i = 0; i < cap_; ++i) {
-      buffer_[i] = other.buffer_[i];
-    }
-  }
-
-  deque(deque&& other) noexcept : buffer_(other.buffer_), cap_(other.cap_), size_(other.size_), head_(other.head_) {
-    other.buffer_ = nullptr;
-    other.cap_ = other.size_ = other.head_ = 0;
-  }
-
-  deque& operator=(deque other) noexcept {
-    swap(other);
-    return *this;
-  }
-
-  ~deque() { delete[] buffer_; }
-
-  void swap(deque& other) noexcept {
-    std::swap(buffer_, other.buffer_);
-    std::swap(cap_, other.cap_);
-    std::swap(size_, other.size_);
-    std::swap(head_, other.head_);
-  }
-
-  reference operator[](size_type idx) { return buffer_[phys_index(idx)]; }
-
-  const_reference operator[](size_type idx) const { return buffer_[phys_index(idx)]; }
-
-  reference at(size_type idx) {
-    if (idx >= size_) throw std::out_of_range("deque::at");
-    return (*this)[idx];
-  }
-
-  const_reference at(size_type idx) const {
-    if (idx >= size_) throw std::out_of_range("deque::at");
-    return (*this)[idx];
-  }
-
-  reference front() { return (*this)[0]; }
-  const_reference front() const { return (*this)[0]; }
-
-  reference back() { return (*this)[size_ - 1]; }
-  const_reference back() const { return (*this)[size_ - 1]; }
-
-  bool empty() const noexcept { return size_ == 0; }
-  size_type size() const noexcept { return size_; }
-  size_type capacity() const noexcept { return cap_; }
-
-  void push_back(const T& value) {
-    if (size_ == cap_) grow();
-    buffer_[phys_index(size_)] = value;
-    ++size_;
-  }
-
-  void push_back(T&& value) {
-    if (size_ == cap_) grow();
-    buffer_[phys_index(size_)] = std::move(value);
-    ++size_;
-  }
-
-  void push_front(const T& value) {
-    if (size_ == cap_) grow();
-    head_ = (head_ == 0) ? cap_ - 1 : head_ - 1;
-    buffer_[head_] = value;
-    ++size_;
-  }
-
-  void push_front(T&& value) {
-    if (size_ == cap_) grow();
-    head_ = (head_ == 0) ? cap_ - 1 : head_ - 1;
-    buffer_[head_] = std::move(value);
-    ++size_;
-  }
-
-  void pop_back() {
-    if (empty()) throw std::out_of_range("pop_back from empty deque");
-    --size_;
-  }
-
-  void pop_front() {
-    if (empty()) throw std::out_of_range("pop_front from empty deque");
-    head_ = (head_ + 1) % cap_;
-    --size_;
-  }
-
-  void clear() noexcept {
-    size_ = 0;
-    head_ = 0;
-  }
-
-  class iterator {
-    deque* d_;
-    size_type pos_;
-
+  template <bool IsConst>
+  class iterator_basic {
    public:
     using iterator_category = std::random_access_iterator_tag;
-    using value_type = T;
+    using value_type = std::conditional_t<IsConst, const T, T>;
     using difference_type = std::ptrdiff_t;
-    using pointer = T*;
-    using reference = T&;
+    using pointer = std::conditional_t<IsConst, const T*, T*>;
+    using reference = std::conditional_t<IsConst, const T&, T&>;
 
-    iterator(deque* d = nullptr, size_type pos = 0) : d_(d), pos_(pos) {}
+    iterator_basic(deque* d = nullptr, size_type pos = 0) : d_(d), pos_(pos) {}
 
     reference operator*() const { return (*d_)[pos_]; }
-    pointer operator->() const { return &(*d_)[pos_]; }
+    pointer operator->() const { return &(**this); }
 
-    iterator& operator++() {
+    iterator_basic& operator++() {
       ++pos_;
       return *this;
     }
-    iterator operator++(int) {
+    iterator_basic operator++(int) {
       auto tmp = *this;
-      ++*this;
+      ++(*this);
       return tmp;
     }
-    iterator& operator--() {
+    iterator_basic& operator--() {
       --pos_;
       return *this;
     }
-    iterator operator--(int) {
+    iterator_basic operator--(int) {
       auto tmp = *this;
-      --*this;
+      --(*this);
       return tmp;
     }
 
-    iterator& operator+=(difference_type n) {
+    iterator_basic& operator+=(difference_type n) {
       pos_ += n;
       return *this;
     }
-    iterator& operator-=(difference_type n) {
+    iterator_basic& operator-=(difference_type n) {
       pos_ -= n;
       return *this;
     }
 
-    friend iterator operator+(iterator it, difference_type n) {
-      it += n;
-      return it;
-    }
-    friend iterator operator-(iterator it, difference_type n) {
-      it -= n;
-      return it;
-    }
-    friend difference_type operator-(const iterator& a, const iterator& b) {
-      return static_cast<difference_type>(a.pos_) - static_cast<difference_type>(b.pos_);
-    }
-
     reference operator[](difference_type n) const { return (*d_)[pos_ + n]; }
 
-    friend bool operator==(const iterator& a, const iterator& b) { return a.d_ == b.d_ && a.pos_ == b.pos_; }
-    friend bool operator!=(const iterator& a, const iterator& b) { return !(a == b); }
-    friend bool operator<(const iterator& a, const iterator& b) { return a.pos_ < b.pos_; }
-    friend bool operator>(const iterator& a, const iterator& b) { return b < a; }
-    friend bool operator<=(const iterator& a, const iterator& b) { return !(b < a); }
-    friend bool operator>=(const iterator& a, const iterator& b) { return !(a < b); }
+    bool operator==(const iterator_basic& other) const { return pos_ == other.pos_ && d_ == other.d_; }
+    bool operator!=(const iterator_basic& other) const { return !(*this == other); }
+
+   private:
+    deque* d_;
+    size_type pos_;
   };
 
+ public:
+  using iterator = iterator_basic<false>;
+  using const_iterator = iterator_basic<true>;
+
+  // Constructors
+  deque() = default;
+
+  explicit deque(size_type count, const_reference value = value_type()) {
+    capacity_ = std::max(count, INITIAL_CAPACITY);
+    buffer_ = new value_type[capacity_];
+    for (size_type i = 0; i < count; ++i) {
+      buffer_[i] = value;
+    }
+    size_ = count;
+    head_ = 0;
+  }
+
+  // Copy constructor
+  deque(const deque& other) {
+    capacity_ = other.capacity_;
+    size_ = other.size_;
+    head_ = other.head_;
+    buffer_ = new value_type[capacity_];
+    for (size_type i = 0; i < size_; ++i) {
+      buffer_[index(i)] = other.buffer_[other.index(i)];
+    }
+  }
+
+  // Copy assignment
+  deque& operator=(const deque& other) {
+    if (this != &other) {
+      deque tmp(other);
+      swap(tmp);
+    }
+    return *this;
+  }
+
+  // Move constructor
+  deque(deque&& other) noexcept
+      : buffer_(std::exchange(other.buffer_, nullptr)),
+        capacity_(std::exchange(other.capacity_, 0)),
+        size_(std::exchange(other.size_, 0)),
+        head_(std::exchange(other.head_, 0)) {}
+
+  // Move assignment
+  deque& operator=(deque&& other) noexcept {
+    if (this != &other) {
+      clear();
+      buffer_ = std::exchange(other.buffer_, nullptr);
+      capacity_ = std::exchange(other.capacity_, 0);
+      size_ = std::exchange(other.size_, 0);
+      head_ = std::exchange(other.head_, 0);
+    }
+    return *this;
+  }
+
+  ~deque() { clear(); }
+
+  // Capacity
+  bool empty() const noexcept { return size_ == 0; }
+  size_type size() const noexcept { return size_; }
+  size_type capacity() const noexcept { return capacity_; }
+
+  // Element access
+  reference operator[](size_type pos) { return buffer_[index(pos)]; }
+
+  const_reference operator[](size_type pos) const { return buffer_[index(pos)]; }
+
+  reference at(size_type pos) {
+    if (pos >= size_) throw std::out_of_range("deque::at: out of range");
+    return (*this)[pos];
+  }
+
+  const_reference at(size_type pos) const {
+    if (pos >= size_) throw std::out_of_range("deque::at: out of range");
+    return (*this)[pos];
+  }
+
+  reference front() {
+    if (empty()) throw std::out_of_range("deque::front: empty");
+    return buffer_[head_];
+  }
+
+  const_reference front() const {
+    if (empty()) throw std::out_of_range("deque::front: empty");
+    return buffer_[head_];
+  }
+
+  reference back() {
+    if (empty()) throw std::out_of_range("deque::back: empty");
+    return buffer_[index(size_ - 1)];
+  }
+
+  const_reference back() const {
+    if (empty()) throw std::out_of_range("deque::back: empty");
+    return buffer_[index(size_ - 1)];
+  }
+
+  // Modifiers
+  void push_back(const_reference value) {
+    if (size_ == capacity_) reallocate();
+    buffer_[index(size_)] = value;
+    ++size_;
+  }
+
+  void push_front(const_reference value) {
+    if (size_ == capacity_) reallocate();
+    head_ = (head_ == 0) ? capacity_ - 1 : head_ - 1;
+    buffer_[head_] = value;
+    ++size_;
+  }
+
+  void pop_back() {
+    if (empty()) throw std::out_of_range("deque::pop_back: empty");
+    --size_;
+  }
+
+  void pop_front() {
+    if (empty()) throw std::out_of_range("deque::pop_front: empty");
+    head_ = (head_ + 1) % capacity_;
+    --size_;
+  }
+
+  void swap(deque& other) noexcept {
+    std::swap(buffer_, other.buffer_);
+    std::swap(capacity_, other.capacity_);
+    std::swap(size_, other.size_);
+    std::swap(head_, other.head_);
+  }
+
+  void clear() {
+    delete[] buffer_;
+    buffer_ = nullptr;
+    capacity_ = 0;
+    size_ = 0;
+    head_ = 0;
+  }
+
+  // Iterators
   iterator begin() { return iterator(this, 0); }
   iterator end() { return iterator(this, size_); }
+  const_iterator begin() const { return const_iterator(const_cast<deque*>(this), 0); }
+  const_iterator end() const { return const_iterator(const_cast<deque*>(this), size_); }
 };
 
 }  // namespace my::cyclicbufferbased

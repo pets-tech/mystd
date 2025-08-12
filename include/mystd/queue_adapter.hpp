@@ -11,9 +11,11 @@ namespace my {
 /// @brief The queue is a container adapter that provides a First-In-First-Out (FIFO) interface;
 ///
 /// The queue has limited (relative container which is based) interface includes:
-/// -
+/// - enqueue O(1)
+/// - dequeue O(1)
+/// - search O(n)
 ///
-///
+/// The Container must implements front, back, push_back, pop_front, size, empty with standard semantics.
 ///
 template <typename T, typename Container = std::deque<T>>
 class queue {
