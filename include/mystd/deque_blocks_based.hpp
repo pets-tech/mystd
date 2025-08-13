@@ -256,6 +256,8 @@ class deque {
       head_ = next;
       if (head_) {
         head_->prev = nullptr;
+      } else {
+        tail_ = nullptr;  // makes deque consistant (if delete last element then head_ == tail_)
       }
       head_index_ = 0;
     }
@@ -270,6 +272,8 @@ class deque {
       tail_ = prev;
       if (tail_) {
         tail_->next = nullptr;
+      } else {
+        head_ = nullptr;  // makes deque consistant (if delete last element then head_ == tail_)
       }
       tail_index_ = BlockCapacity;
     }

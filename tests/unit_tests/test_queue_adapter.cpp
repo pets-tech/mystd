@@ -4,6 +4,8 @@
 #include <queue>
 #include <string>
 
+#include "mystd/deque_blocks_based.hpp"
+#include "mystd/deque_cyclicbuffer_based.hpp"
 #include "mystd/list_fixed_array.hpp"
 #include "mystd/list_linked_nodes.hpp"
 #include "mystd/queue_adapter.hpp"
@@ -100,6 +102,28 @@ TEST(QueueAdapterTest, MyStdImplementations) {
   s3.dequeue();
   s3.dequeue();
   EXPECT_TRUE(s3.empty());
+
+  my::queue<int, my::cyclicbufferbased::deque<int, 8>> s4;
+  EXPECT_TRUE(s4.empty());
+  for (size_t i = 0; i < 100; ++i) {
+    s4.enqueue(i);
+    EXPECT_EQ(s4.front(), 0);
+  }
+  for (size_t i = 0; i < 100; ++i) {
+    s4.dequeue();
+  }
+  EXPECT_TRUE(s4.empty());
+
+  my::queue<int, my::blocksbased::deque<int, 1>> s5;
+  EXPECT_TRUE(s5.empty());
+  for (size_t i = 0; i < 100; ++i) {
+    s5.enqueue(i);
+    EXPECT_EQ(s5.front(), 0);
+  }
+  for (size_t i = 0; i < 100; ++i) {
+    s5.dequeue();
+  }
+  EXPECT_TRUE(s5.empty());
 }
 
 }  // namespace my::testing

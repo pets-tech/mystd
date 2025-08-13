@@ -17,11 +17,10 @@ mystd is a stl-like library.
         - [x] index and array            -> my::arraybased::list
         - [x] pointer and heap memory    -> my::heapbased::list
 - [x] stack (adapter for deque, list, vector)
-- [ ] queue (adapter for deque, list)
-- [ ] deque
-    - [ ] block array
-    - [ ] on array
-    - [ ] on list
+- [q] queue (adapter for deque, list)
+- [x] deque
+    - [x] on C-array (cyclic buffer)
+    - [x] list of fixed blocks  -> std::deque
 - [ ] hash table
     - [ ] chaining (std::unordered_map)
     - [ ] open addressing

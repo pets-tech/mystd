@@ -7,7 +7,7 @@
 
 namespace my::cyclicbufferbased {
 
-template <typename T>
+template <typename T, std::size_t Capacity = 8>
 class deque {
  public:
   using value_type = T;
@@ -23,7 +23,7 @@ class deque {
   size_type size_ = 0;
   size_type head_ = 0;
 
-  static constexpr size_type INITIAL_CAPACITY = 8;
+  static constexpr size_type INITIAL_CAPACITY = Capacity;
 
   size_type index(size_type offset) const noexcept { return (head_ + offset) % capacity_; }
 

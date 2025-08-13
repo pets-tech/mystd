@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "mystd/deque_blocks_based.hpp"
+#include "mystd/deque_cyclicbuffer_based.hpp"
 #include "mystd/list_fixed_array.hpp"
 #include "mystd/list_linked_nodes.hpp"
 #include "mystd/stack_adapter.hpp"
@@ -112,6 +114,27 @@ TEST(StackAdapterTest, MyStdImplementations) {
   EXPECT_EQ(s3.top(), 1);
   s3.pop();
   EXPECT_TRUE(s3.empty());
+
+  stack<int, my::cyclicbufferbased::deque<int, 8>> s4;
+  for (size_t i = 0; i < 100; ++i) {
+    s4.push(i);
+    EXPECT_EQ(s4.top(), i);
+  }
+  for (size_t i = 0; i < 100; ++i) {
+    s4.pop();
+  }
+  EXPECT_TRUE(s4.empty());
+
+  stack<int, my::blocksbased::deque<int, 1>> s5;
+  EXPECT_TRUE(s5.empty());
+  for (size_t i = 0; i < 100; ++i) {
+    s5.push(i);
+    EXPECT_EQ(s5.top(), i);
+  }
+  for (size_t i = 0; i < 100; ++i) {
+    s5.pop();
+  }
+  EXPECT_TRUE(s5.empty());
 }
 
 }  // namespace my::testing
