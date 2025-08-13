@@ -1,8 +1,8 @@
 #pragma once
 
+#include <iterator>
 #include <stdexcept>
 #include <utility>
-#include <vector>
 
 namespace my::blocksbased {
 
@@ -36,7 +36,9 @@ class deque {
 
   Block* make_block() { return new Block(); }
 
-  reference element_access(size_type pos) const noexcept {
+  // it is o(n) now
+  // TODO save pointers to blocks and got O(1)
+  reference element_access(size_type pos) const {
     size_type block_index = (pos + head_index_) / BlockCapacity;  // add offset for head_index_ in first block
     size_type room_index = (pos + head_index_) % BlockCapacity;
 
@@ -49,10 +51,88 @@ class deque {
 
   template <bool IsConst>
   class iterator_basic {
- }
+   public:
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = std::conditional_t<IsConst, const T, T>;
+    using difference_type = std::ptrdiff_t;
+    using pointer = std::conditional_t<IsConst, const T*, T*>;
+    using reference = std::conditional_t<IsConst, const T&, T&>;
 
- public : using iterator = iterator_basic<false>;
+    iterator_basic(deque* d = nullptr, std::size_t index = 0) : d_(d), index_(index) {};
+
+    reference operator*() const { return (*d_)[index_]; }
+
+    pointer operator->() const { return &(**this); }
+
+    iterator_basic& operator++() {
+      ++index_;
+      return *this;
+    }
+
+    iterator_basic operator++(int) {
+      deque tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    iterator_basic& operator--() {
+      --index_;
+      return *this;
+    }
+
+    iterator_basic operator--(int) {
+      auto tmp = *this;
+      --index_;
+      return tmp;
+    }
+
+    iterator_basic& operator+=(difference_type n) {
+      index_ += n;
+      return *this;
+    }
+
+    iterator_basic operator+(difference_type n) const {
+      auto tmp = *this;
+      return tmp += n;
+    }
+
+    iterator_basic& operator-=(difference_type n) {
+      index_ -= n;
+      return *this;
+    }
+
+    iterator_basic operator-(difference_type n) const {
+      auto tmp = *this;
+      return tmp -= n;
+    }
+
+    // TODO test it very well!
+    difference_type operator-(const iterator_basic& other) const {
+      return static_cast<difference_type>(index_) - static_cast<difference_type>(other.index_);
+    }
+
+    bool operator==(const iterator_basic& other) const { return index_ == other.index_ && d_ == other.d_; }
+
+    bool operator!=(const iterator_basic& other) const { return !(*this == other); }
+
+    bool operator<(const iterator_basic& other) const { return index_ < other.index_; }
+
+    bool operator>(const iterator_basic& other) const { return other < *this; }
+
+    bool operator<=(const iterator_basic& other) const { return !(other < *this); }
+
+    bool operator>=(const iterator_basic& other) const { return !(*this < other); }
+
+   private:
+    deque* d_;
+    std::size_t index_;
+  };
+
+ public:
+  using iterator = iterator_basic<false>;
   using const_iterator = iterator_basic<true>;
+  using reverse_iterator = std::reverse_iterator<iterator>;
+  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
   // ctor
 
@@ -113,14 +193,14 @@ class deque {
   const_reference operator[](size_type pos) const noexcept { return element_access(pos); }
 
   reference at(size_type pos) {
-    if (pos > size_) {
+    if (pos >= size_) {
       throw std::out_of_range("deque::at() calls for out of range element");
     }
     return (*this)[pos];
   }
 
   const_reference at(size_type pos) const {
-    if (pos > size_) {
+    if (pos >= size_) {
       throw std::out_of_range("deque::at() calls for out of range element");
     }
     return (*this)[pos];
@@ -174,6 +254,9 @@ class deque {
       auto next = head_->next;
       delete head_;
       head_ = next;
+      if (head_) {
+        head_->prev = nullptr;
+      }
       head_index_ = 0;
     }
     --size_;
@@ -181,14 +264,39 @@ class deque {
 
   void pop_back() {
     --tail_index_;
-    if (tail_index_ = 0) {
+    if (tail_index_ == 0) {
       auto prev = tail_->prev;
       delete tail_;
       tail_ = prev;
+      if (tail_) {
+        tail_->next = nullptr;
+      }
       tail_index_ = BlockCapacity;
     }
     --size_;
   }
+
+  // iterators
+
+  iterator begin() { return iterator(this, 0); }
+  iterator end() { return iterator(this, size()); }
+
+  const_iterator begin() const { return const_iterator(this, 0); }
+  const_iterator end() const { return const_iterator(this, size()); }
+
+  const_iterator cbegin() const { return const_iterator(this, 0); }
+  const_iterator cend() const { return const_iterator(this, size()); }
+
+  reverse_iterator rbegin() { return reverse_iterator(end()); }
+  reverse_iterator rend() { return reverse_iterator(begin()); }
+
+  const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
+  const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
+
+  const_reverse_iterator crbegin() const { return const_reverse_iterator(end()); }
+  const_reverse_iterator crend() const { return const_reverse_iterator(begin()); }
+
+  // others
 
   void clear() {
     while (head_) {

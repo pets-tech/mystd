@@ -73,6 +73,9 @@ TEST(DequeBlocksTest, Copy) {
   deque<int> d3;
   d3 = d2;
 
+  deque<int> d4, d5, d6;
+  d4 = d5 = d6 = d3;
+
   EXPECT_EQ(d1.size(), d2.size());
   EXPECT_EQ(d1.size(), d3.size());
 
@@ -112,6 +115,46 @@ TEST(DequeBlocksTest, At) {
   runAtScenario<2>();
   runAtScenario<3>();
   runAtScenario<4>();
+}
+
+struct MyType {
+  int a = 42;
+};
+
+TEST(DequeBlocksTest, CustomType) {
+  deque<MyType> d;
+  d.push_back(MyType(1));
+  d.push_back(MyType(2));
+  d.push_back(MyType());
+
+  EXPECT_EQ(d.size(), 3);
+  EXPECT_EQ(d.front().a, 1);
+  EXPECT_EQ(d.back().a, 42);
+}
+
+TEST(DequeBlocksTest, Iterators) {
+  deque<int> d = {1, 2, 3};
+
+  auto its = d.begin();
+  auto ite = d.end();
+  EXPECT_EQ(*its, 1);
+  EXPECT_EQ(*--ite, 3);
+  EXPECT_TRUE(its < ite);
+
+  size_t i = 1;
+  for (auto& val : d) {
+    EXPECT_EQ(val, i++);
+  }
+
+  i = 1;
+  for (const auto& val : d) {
+    EXPECT_EQ(val, i++);
+  }
+
+  i = 3;
+  for (auto it = d.rbegin(), ite = d.rend(); it != ite; ++it) {
+    EXPECT_EQ(*it, i--);
+  }
 }
 
 }  // namespace my::blocksbased::testing
