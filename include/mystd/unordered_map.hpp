@@ -1,7 +1,8 @@
 #pragma once
 
+#include <forward_list>
 #include <functional>
-#include <list>
+#include <initializer_list>
 #include <vector>
 
 namespace my {
@@ -17,7 +18,7 @@ class unordered_map {
   using size_type = size_t;
 
  private:
-  std::vector<std::list<std::pair<Key, Value>>> buckets;
+  std::vector<std::forward_list<std::pair<Key, Value>>> buckets;
   Hash hasher;
   size_type num_elements = 0;
   size_type max_load_factor = 0.75;
@@ -32,12 +33,12 @@ class unordered_map {
 
   void rehash() {
     size_type new_capacity = buckets.size() * reallocation_factor;
-    std::vector<std::list<std::pair<Key, Value>>> new_buckets{new_capacity};
+    std::vector<std::forward_list<std::pair<Key, Value>>> new_buckets{new_capacity};
 
     for (const auto& bucket : buckets) {
       for (const auto& kv : bucket) {
         size_type new_sh = hash(kv.first) % new_buckets.size();
-        new_buckets[new_sh].push_back(kv);
+        new_buckets[new_sh].push_front(kv);
       }
     }
     buckets.swap(new_buckets);
@@ -47,6 +48,12 @@ class unordered_map {
   // ctor
 
   unordered_map(size_type capacity = 8) : buckets(capacity) {}
+
+  unordered_map(const std::initializer_list<std::pair<Key, Value>>& init) : unordered_map() {
+    for (const auto& kv : init) {
+      insert(kv.first, kv.second);
+    }
+  }
 
   // capacity
 
@@ -65,7 +72,7 @@ class unordered_map {
       }
     }
 
-    buckets[idx].push_back({key, value_type{}});
+    buckets[idx].push_front({key, value_type{}});
     ++num_elements;
 
     size_type load_factor = num_elements / buckets.size();
@@ -92,7 +99,7 @@ class unordered_map {
       }
     }
 
-    buckets[idx].push_back({key, value});
+    buckets[idx].push_front({key, value});
     ++num_elements;
 
     size_type load_factor = num_elements / buckets.size();
@@ -117,12 +124,20 @@ class unordered_map {
 
     auto& bucket = buckets[idx];
 
+    if (bucket.front().first == key) {
+      bucket.pop_front();
+      --num_elements;
+      return;
+    }
+
+    auto prev_it = bucket.before_begin();
     for (auto it = bucket.begin(), ite = bucket.end(); it != ite; ++it) {
       if (it->first == key) {
-        bucket.erase(it);
+        bucket.erase_after(prev_it);
         --num_elements;
         return;
       }
+      ++prev_it;
     }
   }
 };

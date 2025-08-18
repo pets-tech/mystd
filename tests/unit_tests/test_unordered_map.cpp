@@ -8,6 +8,16 @@ TEST(UnorderedMapTest, Initialization) {
   my::unordered_map<char, int> hash_table;
   EXPECT_TRUE(hash_table.empty());
   EXPECT_EQ(hash_table.size(), 0);
+
+  my::unordered_map<char, int> m1 = {{'a', 1}, {'b', 2}, {'c', 3}};
+  EXPECT_EQ(m1.size(), 3);
+  EXPECT_TRUE(m1.find('a'));
+  EXPECT_TRUE(m1.find('b'));
+  EXPECT_TRUE(m1.find('c'));
+
+  EXPECT_EQ(m1['a'], 1);
+  EXPECT_EQ(m1['b'], 2);
+  EXPECT_EQ(m1['c'], 3);
 }
 
 TEST(UnorderedMapTest, InsertAndFind) {
