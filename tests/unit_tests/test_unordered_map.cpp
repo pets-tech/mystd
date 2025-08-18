@@ -81,7 +81,7 @@ struct BadHash {
   size_t operator()(int) const { return 0; }
 };
 
-TEST(UnorderedMapTest, collision) {
+TEST(UnorderedMapTest, Collision) {
   my::unordered_map<int, int, BadHash> m(3);
 
   for (size_t i = 0; i < 100; ++i) {
@@ -100,6 +100,28 @@ TEST(UnorderedMapTest, collision) {
     }
 
     EXPECT_EQ(m[i], i * 10);
+  }
+}
+
+struct BadHashInt {
+  size_t operator()(int x) const { return x % 5; }
+};
+
+TEST(UnorderedMapTest, Iterator) {
+  my::unordered_map<int, int> m1;
+
+  for (size_t i = 0; i < 100; ++i) {
+    m1[i] = i * 10;
+  }
+
+  auto it = m1.begin();
+  auto ite = m1.end();
+  for (; it != ite; ++it) {
+    EXPECT_EQ(it->second, it->first * 10);
+  }
+
+  for (const auto& kv : m1) {
+    EXPECT_EQ(kv.second, kv.first * 10);
   }
 }
 
