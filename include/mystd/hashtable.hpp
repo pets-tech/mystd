@@ -1,0 +1,195 @@
+#pragma once
+
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
+
+namespace my {
+
+/// @brief The policy for map/set multimap/multiset.
+enum class InsertPolicy { UniqueKeys, AllowDuplicates };
+
+/// @brief The core of others hash tables based data structures.
+/// @tparam Value
+/// @tparam Key
+/// @tparam KeyOfValue -- rule how to extract Key
+/// @tparam Hash -- rule how to compute hash of Key
+/// @tparam KeyEqual -- rule how to equal to Key
+/// @tparam Policy -- rule if Key is unique or not
+template <class Value, class Key, class KeyOfValue, class Hash = std::hash<Key>, class KeyEqual = std::equal_to<Key>,
+          InsertPolicy Policy = InsertPolicy::UniqueKeys, class Allocator = std::allocator<Value>>
+class hashtable {
+ public:
+  using key_type = Key;
+  using value_type = Value;
+  using reference = Value&;
+  using const_reference = const Value&;
+  using size_type = std::size_t;
+
+  static constexpr float max_load_factor = 0.75f;
+  static constexpr size_type reallocation_factor = 2;
+
+ private:
+  struct Node {
+    Value value;
+    size_type hash;
+    Node* next;
+
+    Node(const_reference v, size_type h, Node* n = nullptr) : value(v), hash(h), next(n) {}
+  };
+
+  using node_allocator_type = typename std::allocator_traits<Allocator>::template rebind_alloc<Node>;
+
+  std::vector<Node*> buckets;
+  size_type size_ = 0;
+  Hash hasher;
+  KeyEqual equal;
+  KeyOfValue key_of_value;
+  node_allocator_type alloc;
+
+  size_type get_index_(const key_type& k, size_type bucket_count) const { return hasher(k) % bucket_count; }
+
+  void rehash_() {
+    if (load_factor() > max_load_factor) {
+      rehash(buckets.size() * reallocation_factor);
+    }
+  }
+
+ public:
+  template <bool IsConst>
+  class iterator_basic {
+   public:
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = std::conditional_t<IsConst, const Value, Value>;
+    using pointer = std::conditional_t<IsConst, const Value*, Value*>;
+    using reference = std::conditional_t<IsConst, const Value&, Value&>;
+    using difference_type = std::ptrdiff_t;
+    using buckets_pointer = std::conditional_t<IsConst, const std::vector<Node*>*, std::vector<Node*>*>;
+
+   private:
+    Node* node;
+    buckets_pointer buckets;
+    size_type bucket_idx;
+
+    void skip_empty() {
+      while (!node && bucket_idx + 1 < buckets->size()) {
+        node = (*buckets)[++bucket_idx];
+      }
+    }
+
+   public:
+    iterator_basic(Node* n, std::vector<Node*>* b, size_type i) : node(n), buckets(b), bucket_idx(i) {}
+
+    reference operator*() const { return node->value; }
+
+    pointer operator->() const { return &node->value; }
+
+    iterator_basic& operator++() {
+      if (node) {
+        node = node->next;
+        if (!node) {
+          skip_empty();
+          if (!node) {
+            bucket_idx = buckets->size();
+          }
+        }
+      }
+      return *this;
+    }
+
+    bool operator==(const iterator_basic& other) const {
+      return node == other.node && bucket_idx == other.bucket_idx && buckets == other.buckets;
+    }
+    bool operator!=(const iterator_basic& other) const { return !(*this == other); }
+  };
+
+  using iterator = iterator_basic<false>;
+  using const_iterator = iterator_basic<true>;
+
+  explicit hashtable(size_type bucket_count = 8) : buckets(bucket_count, nullptr) {}
+
+  ~hashtable() { clear(); }
+
+  void clear() {
+    for (Node* node : buckets) {
+      while (node) {
+        Node* tmp = node->next;
+        std::allocator_traits<node_allocator_type>::destroy(alloc, node);
+        alloc.deallocate(node, 1);
+        node = tmp;
+      }
+    }
+    buckets.assign(buckets.size(), nullptr);
+    size_ = 0;
+  }
+
+  std::pair<iterator, bool> insert(const_reference v) {
+    const key_type& k = key_of_value(v);
+    size_type h = hasher(k);
+    size_type idx = h % buckets.size();
+
+    if constexpr (Policy == InsertPolicy::UniqueKeys) {
+      for (Node* node = buckets[idx]; node; node = node->next) {
+        if (node->hash == h && equal(key_of_value(node->value), k)) {
+          return {iterator(node, &buckets, idx), false};
+        }
+      }
+    }
+
+    Node* new_node = alloc.allocate(1);
+    std::allocator_traits<node_allocator_type>::construct(alloc, new_node, v, h, buckets[idx]);
+    buckets[idx] = new_node;
+    ++size_;
+
+    rehash_();
+
+    return {iterator(new_node, &buckets, idx), true};
+  }
+
+  iterator find(const key_type& k) {
+    size_type h = hasher(k);
+    size_type idx = h % buckets.size();
+    for (Node* node = buckets[idx]; node; node = node->next) {
+      if (node->hash == h && equal(key_of_value(node->value), k)) {
+        return iterator(node, &buckets, idx);
+      }
+    }
+    return end();
+  }
+
+  iterator begin() {
+    for (size_type i = 0, ie = buckets.size(); i < ie; ++i) {
+      if (buckets[i]) {
+        return iterator(buckets[i], &buckets, i);
+      }
+    }
+    return end();
+  }
+
+  iterator end() { return iterator(nullptr, &buckets, buckets.size()); }
+
+  size_type size() const { return size_; }
+
+  size_type bucket_count() const { return buckets.size(); }
+
+  float load_factor() const { return static_cast<float>(size_) / buckets.size(); }
+
+  void rehash(size_type new_count) {
+    std::vector<Node*> new_buckets(new_count, nullptr);
+
+    for (Node* node : buckets) {
+      while (node) {
+        Node* next = node->next;
+        size_type idx = node->hash % new_count;
+        node->next = new_buckets[idx];
+        new_buckets[idx] = node;
+        node = next;
+      }
+    }
+
+    buckets.swap(new_buckets);
+  }
+};
+
+}  // namespace my
