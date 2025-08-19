@@ -59,6 +59,9 @@ TEST(HashTableTest, Iterators) {
     EXPECT_EQ(it_map->second, it_map->first * 10);
     ++it_map;
   }
+
+  auto cit_map = hmap.cbegin();
+  auto cite_map = hmap.cend();
 }
 
 TEST(HashTableTest, Find) {

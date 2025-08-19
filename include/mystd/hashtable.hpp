@@ -65,11 +65,11 @@ class hashtable {
     using pointer = std::conditional_t<IsConst, const Value*, Value*>;
     using reference = std::conditional_t<IsConst, const Value&, Value&>;
     using difference_type = std::ptrdiff_t;
-    using buckets_pointer = std::conditional_t<IsConst, const std::vector<Node*>*, std::vector<Node*>*>;
+    using BucketsVector = std::conditional_t<IsConst, const std::vector<Node*>, std::vector<Node*>>;
 
    private:
     Node* node;
-    buckets_pointer buckets;
+    BucketsVector* buckets;
     size_type bucket_idx;
 
     void skip_empty() {
@@ -79,7 +79,7 @@ class hashtable {
     }
 
    public:
-    iterator_basic(Node* n, std::vector<Node*>* b, size_type i) : node(n), buckets(b), bucket_idx(i) {
+    iterator_basic(Node* n, BucketsVector* b, size_type i) : node(n), buckets(b), bucket_idx(i) {
       if (!node) {
         skip_empty();
       }
