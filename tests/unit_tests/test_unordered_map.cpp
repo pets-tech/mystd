@@ -11,9 +11,9 @@ TEST(UnorderedMapTest, Initialization) {
 
   my::unordered_map<char, int> m1 = {{'a', 1}, {'b', 2}, {'c', 3}};
   EXPECT_EQ(m1.size(), 3);
-  EXPECT_TRUE(m1.find('a'));
-  EXPECT_TRUE(m1.find('b'));
-  EXPECT_TRUE(m1.find('c'));
+  EXPECT_EQ((*m1.find('a')).second, 1);
+  EXPECT_EQ((*m1.find('b')).second, 2);
+  EXPECT_EQ((*m1.find('c')).second, 3);
 
   EXPECT_EQ(m1['a'], 1);
   EXPECT_EQ(m1['b'], 2);
@@ -27,10 +27,10 @@ TEST(UnorderedMapTest, InsertAndFind) {
   m.insert('b', 2);
   m.insert('c', 3);
 
-  EXPECT_TRUE(m.find('a'));
-  EXPECT_TRUE(m.find('b'));
-  EXPECT_TRUE(m.find('c'));
-  EXPECT_FALSE(m.find('d'));
+  EXPECT_EQ((*m.find('a')).second, 1);
+  EXPECT_EQ((*m.find('b')).second, 2);
+  EXPECT_EQ((*m.find('c')).second, 3);
+  EXPECT_EQ(m.find('d'), m.end());
 }
 
 TEST(UnorderedMapTest, Erase) {
@@ -67,12 +67,16 @@ TEST(UnorderedMapTest, OperatorBrackets) {
 TEST(UnorderedMapTest, Rehash) {
   my::unordered_map<int, int> m(3);
 
+  EXPECT_EQ(m.bucket_count(), 3);
+
   for (size_t i = 0; i < 100; ++i) {
     m.insert(i, i * 10);
   }
 
+  EXPECT_EQ(m.bucket_count(), 192);  // 3 6 12 24 48 96 192
+
   for (size_t i = 0; i < 100; ++i) {
-    EXPECT_TRUE(m.find(i));
+    EXPECT_TRUE(m.find(i) != m.end());
     EXPECT_EQ(m[i], i * 10);
   }
 }
@@ -92,7 +96,7 @@ TEST(UnorderedMapTest, Collision) {
   m.erase(0);
 
   for (size_t i = 1; i < 100; ++i) {
-    EXPECT_TRUE(m.find(i));
+    EXPECT_TRUE(m.find(i) != m.end());
 
     if (i == 10) {
       EXPECT_EQ(m[i], 42);

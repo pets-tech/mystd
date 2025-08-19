@@ -211,6 +211,40 @@ class hashtable {
     return end();
   }
 
+  /// @return iterator to after removed element
+  iterator erase(const key_type& k) {
+    size_type h = hasher(k);
+    size_type idx = h % buckets.size();
+
+    Node* cur = buckets[idx];
+    Node* prev = nullptr;
+
+    while (cur) {
+      if (cur->hash == h && equal(key_of_value(cur->value), k)) {
+        Node* next = cur->next;
+        if (prev) {
+          prev->next = next;
+        } else {  // first element case
+          buckets[idx] = next;
+        }
+
+        std::allocator_traits<node_allocator_type>::destroy(alloc, cur);
+        alloc.deallocate(cur, 1);
+        --size_;
+
+        if (next) {
+          return iterator(next, &buckets, idx);
+        } else {  // if bucket become empty find from start
+          return iterator(nullptr, &buckets, idx);
+        }
+      }
+      prev = cur;
+      cur = cur->next;
+    }
+
+    return end();
+  }
+
   // iterators
   iterator begin() { return iterator(nullptr, &buckets, 0); }
   iterator end() { return iterator(nullptr, &buckets, buckets.size()); }
