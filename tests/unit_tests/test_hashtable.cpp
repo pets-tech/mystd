@@ -128,4 +128,39 @@ TEST(HashTableTest, CopyMoveCtors) {
   EXPECT_EQ((*hmap5.find('b')).second, 4);
 }
 
+TEST(HashTableTest, Count) {
+  using Pair = std::pair<char, int>;
+  my::hashtable<Pair, int, KeyOfValue<char, int>> hmap;
+
+  hmap.insert({'a', 1});
+  hmap.insert({'b', 1});
+  hmap.insert({'a', 1});
+  hmap.insert({'a', 1});
+
+  EXPECT_EQ(hmap.count('a'), 1);
+  EXPECT_EQ(hmap.count('b'), 1);
+
+  // multimap
+  my::hashtable<Pair, int, KeyOfValue<char, int>, std::hash<char>, std::equal_to<char>, InsertPolicy::AllowDuplicates>
+      multi_hmap;
+
+  multi_hmap.insert({'a', 1});
+  multi_hmap.insert({'b', 1});
+  multi_hmap.insert({'a', 1});
+  multi_hmap.insert({'a', 1});
+
+  EXPECT_EQ(multi_hmap.count('a'), 3);
+  EXPECT_EQ(multi_hmap.count('b'), 1);
+
+  multi_hmap.erase('a');
+  EXPECT_TRUE(multi_hmap.find('a') != multi_hmap.end());
+  EXPECT_EQ(multi_hmap.count('a'), 2);
+
+  multi_hmap.erase('a');
+  EXPECT_TRUE(multi_hmap.find('a') != multi_hmap.end());
+  EXPECT_EQ(multi_hmap.count('a'), 1);
+
+  EXPECT_EQ(multi_hmap.size(), 2);
+}
+
 }  // namespace my::testing

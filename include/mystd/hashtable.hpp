@@ -177,6 +177,22 @@ class hashtable {
     size_ = 0;
   }
 
+  size_type count(const key_type& k) const {
+    size_type h = hasher(k);
+    size_type idx = h % buckets.size();
+
+    auto cur = buckets[idx];
+
+    size_type count = 0;
+    while (cur) {
+      if (cur->hash == h && equal(key_of_value(cur->value), k)) {
+        ++count;
+      }
+      cur = cur->next;
+    }
+    return count;
+  }
+
   std::pair<iterator, bool> insert(const_reference v) {
     const key_type& k = key_of_value(v);
     size_type h = hasher(k);
