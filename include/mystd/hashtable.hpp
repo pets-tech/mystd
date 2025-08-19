@@ -79,7 +79,11 @@ class hashtable {
     }
 
    public:
-    iterator_basic(Node* n, std::vector<Node*>* b, size_type i) : node(n), buckets(b), bucket_idx(i) {}
+    iterator_basic(Node* n, std::vector<Node*>* b, size_type i) : node(n), buckets(b), bucket_idx(i) {
+      if (!node) {
+        skip_empty();
+      }
+    }
 
     reference operator*() const { return node->value; }
 
@@ -107,7 +111,55 @@ class hashtable {
   using iterator = iterator_basic<false>;
   using const_iterator = iterator_basic<true>;
 
-  explicit hashtable(size_type bucket_count = 8) : buckets(bucket_count, nullptr) {}
+  // ctor
+  explicit hashtable(size_type bucket_count = 8)
+      : buckets(bucket_count, nullptr), size_(0), hasher(), equal(), key_of_value(), alloc() {}
+
+  // copy
+  hashtable(const hashtable& other)
+      : buckets(other.buckets.size(), nullptr),
+        size_(0),
+        hasher(other.hasher),
+        equal(other.equal),
+        key_of_value(other.key_of_value),
+        alloc(other.alloc) {
+    for (size_type i = 0; i < other.buckets.size(); ++i) {
+      Node* src = other.buckets[i];
+      Node** dst = &buckets[i];
+      while (src) {
+        Node* new_node = alloc.allocate(1);
+        std::allocator_traits<node_allocator_type>::construct(alloc, new_node, src->value, src->hash);
+        *dst = new_node;
+        dst = &new_node->next;
+        src = src->next;
+        ++size_;
+      }
+    }
+  }
+
+  // copy assign
+  hashtable& operator=(const hashtable& other) {
+    if (this != &other) {
+      hashtable tmp(other);
+      swap(tmp);
+    }
+    return *this;
+  }
+
+  // move
+  hashtable(hashtable&& other) noexcept {
+    swap(other);  // very pretty! because new consistent
+                  // empty object created (default ctor do it)
+                  // and then swaped
+  }
+
+  hashtable& operator=(hashtable&& other) {
+    if (this != &other) {
+      clear();
+      swap(other);
+    }
+    return *this;
+  }
 
   ~hashtable() { clear(); }
 
@@ -120,6 +172,7 @@ class hashtable {
         node = tmp;
       }
     }
+    // leave the object in consistent state
     buckets.assign(buckets.size(), nullptr);
     size_ = 0;
   }
@@ -158,19 +211,20 @@ class hashtable {
     return end();
   }
 
-  iterator begin() {
-    for (size_type i = 0, ie = buckets.size(); i < ie; ++i) {
-      if (buckets[i]) {
-        return iterator(buckets[i], &buckets, i);
-      }
-    }
-    return end();
-  }
-
+  // iterators
+  iterator begin() { return iterator(nullptr, &buckets, 0); }
   iterator end() { return iterator(nullptr, &buckets, buckets.size()); }
 
-  size_type size() const { return size_; }
+  const_iterator begin() const { return const_iterator(nullptr, &buckets, 0); }
+  const_iterator end() const { return const_iterator(nullptr, &buckets, buckets.size()); }
 
+  const_iterator cbegin() const { return const_iterator(nullptr, &buckets, 0); }
+  const_iterator cend() const { return const_iterator(nullptr, &buckets, buckets.size()); }
+
+  // capacity and others
+
+  size_type size() const { return size_; }
+  bool empty() const { return size_ == 0; }
   size_type bucket_count() const { return buckets.size(); }
 
   float load_factor() const { return static_cast<float>(size_) / buckets.size(); }
@@ -190,6 +244,18 @@ class hashtable {
 
     buckets.swap(new_buckets);
   }
+
+  void swap(hashtable& other) noexcept {
+    std::swap(buckets, other.buckets);
+    std::swap(size_, other.size_);
+    std::swap(hasher, other.hasher);
+    std::swap(equal, other.equal);
+    std::swap(key_of_value, other.key_of_value);
+    std::swap(alloc, other.alloc);
+  }
+
+  // ADL
+  friend void swap(hashtable& a, hashtable& b) noexcept { a.swap(b); }
 };
 
 }  // namespace my
