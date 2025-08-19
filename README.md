@@ -3,6 +3,9 @@ mystd is a stl-like library.
 
 [![GitHub Pages](https://img.shields.io/badge/docs-online-blue?logo=github)](https://pets-tech.github.io/mystd/) [![codecov](https://codecov.io/gh/pets-tech/mystd/graph/badge.svg?token=92FQ42MXUZ)](https://codecov.io/gh/pets-tech/mystd) [![mystd CI](https://github.com/pets-tech/mystd/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/pets-tech/mystd/actions/workflows/ci.yml)
 
+> [!IMPORTANT]
+> In fact, this is a demo, not realy production code. Real containers need weeks of dev and testing, not hours/days. Use at your own risk. I just implemented a lot of basic things quickly.
+
 
 ## Features
 
@@ -24,7 +27,7 @@ mystd is a stl-like library.
 - [ ] hash table
     - [x] hash table on separate chaining -> my::hashtable
         - [x] my::unordered_map
-        - [ ] my::unordered_set
+        - [x] my::unordered_set
         - [ ] my::unordered_multimap
         - [ ] my::unordered_multiset
     - [ ] hash table on open addressing

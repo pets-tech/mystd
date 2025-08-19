@@ -6,18 +6,17 @@
 
 namespace my {
 
-template <class Key, class Hash = std::hash<Key>, class KeyEqual = std::equal_to<Key>>
+template <class Value, class Hash = std::hash<Value>, class KeyEqual = std::equal_to<Value>>
 class unordered_set {
  private:
   struct Identity {
-    const Key& operator()(const Key& k) const noexcept { return k; }
+    const Value& operator()(const Value& v) const noexcept { return v; }
   };
 
-  using Base = hashtable<Key, Key, Identity, Hash, KeyEqual, InsertPolicy::UniqueKeys>;
+  using Base = hashtable<Value, Value, Identity, Hash, KeyEqual, InsertPolicy::UniqueKeys>;
   Base table;
 
  public:
-  using key_type = Key;
   using value_type = Value;
   using reference = Value&;
   using const_reference = const Value&;
@@ -29,28 +28,22 @@ class unordered_set {
   unordered_set(const size_type bucket_count = 8) : table(bucket_count) {};
 
   // initializer_list ctor
-  unordered_set(const std::initializer_list<std::pair<Key, Value>>& init) : unordered_set() {
-    for (const auto& kv : init) {
-      insert(kv);
+  unordered_set(const std::initializer_list<Value>& init) : unordered_set() {
+    for (const auto& v : init) {
+      insert(v);
     }
-  }
-
-  // observers
-  reference operator[](const key_type& k) {
-    auto [it, inserted] = table.insert(k);
-    return *it;
   }
 
   // modifiers
 
-  iterator insert(const key_type& k) {
-    auto it_flag = table.insert(k);
+  iterator insert(const value_type& v) {
+    auto it_flag = table.insert(v);
     return it_flag.first;
   }
 
-  iterator find(const key_type& k) { return table.find(k); }
+  iterator find(const value_type& v) { return table.find(v); }
 
-  iterator erase(const key_type& k) { return table.erase(k); }
+  iterator erase(const value_type& v) { return table.erase(v); }
 
   // capacity
   size_type size() const { return table.size(); }
