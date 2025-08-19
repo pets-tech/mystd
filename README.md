@@ -24,12 +24,12 @@ mystd is a stl-like library.
 - [x] deque
     - [x] on C-array (cyclic buffer)
     - [x] list of fixed blocks  -> std::deque
-- [ ] hash table
+- [x] hash table
     - [x] hash table on separate chaining -> my::hashtable
-        - [x] my::unordered_map
-        - [x] my::unordered_set
-        - [ ] my::unordered_multimap
-        - [ ] my::unordered_multiset
+        - [x] my::unordered_map         (todo: should be tested better)
+        - [x] my::unordered_set         (todo: should be tested better)
+        - [x] my::unordered_multimap    (todo: should be tested better)
+        - [x] my::unordered_multiset    (todo: should be tested better)
     - [ ] hash table on open addressing
 - [ ] trees
     - [ ] binary tree
