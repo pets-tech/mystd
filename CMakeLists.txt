@@ -1,56 +1,53 @@
 cmake_minimum_required(VERSION 3.14)
-project(mystd)
+project(mystd LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Default build type
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose build type" FORCE)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-# Compiler flags
-if(CMAKE_BUILD_TYPE STREQUAL Release)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-elseif(CMAKE_BUILD_TYPE STREQUAL Debug)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fsanitize=address,undefined -fno-omit-frame-pointer")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined")
+# -----------------------------------------------------------------------------
+# mystd lib with cxx 24
+# -----------------------------------------------------------------------------
+add_library(mystd INTERFACE)
+target_include_directories(mystd INTERFACE ${CMAKE_SOURCE_DIR}/include)
+
+target_compile_features(mystd INTERFACE cxx_std_23)
+
+# -----------------------------------------------------------------------------
+# targets
+# -----------------------------------------------------------------------------
+add_library(project_options INTERFACE)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(project_options INTERFACE -O3)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(project_options INTERFACE -g -O0 -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(project_options INTERFACE -fsanitize=address,undefined)
 endif()
 
-# Coverage flags
+# coverage
 option(ENABLE_COVERAGE "Enable code coverage" OFF)
-if(ENABLE_COVERAGE)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
-    else()
-        message(WARNING "Coverage is only supported with GCC or Clang")
-    endif()
+if(ENABLE_COVERAGE AND (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"))
+    target_compile_options(project_options INTERFACE --coverage -fprofile-arcs -ftest-coverage)
+    target_link_options(project_options INTERFACE --coverage)
 endif()
 
-# Find dependencies
-find_package(GTest QUIET)
-if(NOT GTest_FOUND)
-    message(FATAL_ERROR "GTest not found")
-endif()
-find_package(benchmark QUIET)
-if(NOT benchmark_FOUND)
-    message(FATAL_ERROR "benchmark not found")
-endif()
-find_package(Catch2 3 QUIET)
-if(NOT Catch2_FOUND)
-    message(FATAL_ERROR "Catch2 not found")
-endif()
+# -----------------------------------------------------------------------------
+# Requirenments
+# -----------------------------------------------------------------------------
+find_package(GTest REQUIRED)
+find_package(benchmark REQUIRED)
+find_package(Catch2 3 REQUIRED)
 
+# -----------------------------------------------------------------------------
+# Documentation
+# -----------------------------------------------------------------------------
 find_package(Doxygen QUIET)
-if(Docxygen_FOUND)
-    configure_file(
-        docs/Doxyfile
-        ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-        @ONLY
-    )
+if(Doxygen_FOUND)
+    configure_file(docs/Doxyfile ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
 
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/docs/doxygen/xml/index.xml
@@ -60,38 +57,34 @@ if(Docxygen_FOUND)
         COMMENT "Generating Doxygen XML..."
     )
 
-    add_custom_target(docs
+    add_custom_target(doxygen_docs
         DEPENDS ${CMAKE_BINARY_DIR}/docs/doxygen/xml/index.xml
+    )
+
+    add_custom_target(docs
+        DEPENDS doxygen_docs
         COMMAND ${SPHINX_EXECUTABLE} -M html ${CMAKE_SOURCE_DIR}/docs/sphinx ${CMAKE_BINARY_DIR}/docs/sphinx
     )
 endif()
 
-include_directories(include)
-
-add_library(mystd INTERFACE)
-target_include_directories(mystd INTERFACE  include/mystd/*)
-
-# EXAMPLES
-# add_executable(main examples/main.cpp)
-
-# TESTS
-
-# unit tests
+# -----------------------------------------------------------------------------
+# Tests
+# -----------------------------------------------------------------------------
 enable_testing()
+
 file(GLOB_RECURSE UNIT_TEST_SOURCES tests/unit_tests/*.cpp)
 add_executable(unit_tests ${UNIT_TEST_SOURCES})
-target_link_libraries(unit_tests PRIVATE GTest::GTest GTest::Main mystd)
+target_link_libraries(unit_tests PRIVATE GTest::GTest GTest::Main mystd project_options)
 add_test(NAME unit_tests COMMAND unit_tests)
 gtest_discover_tests(unit_tests)
 
- # bechmark tests
 file(GLOB_RECURSE BENCHMARK_TEST_SOURCES tests/bench_catch_tests/*.cpp)
-# add_executable(benchmark_tests ${BENCHMARK_TEST_SOURCES})
-# target_link_libraries(benchmark_tests PRIVATE benchmark::benchmark mystd)
 add_executable(catch_bench ${BENCHMARK_TEST_SOURCES})
-target_link_libraries(catch_bench PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(catch_bench PRIVATE Catch2::Catch2WithMain mystd project_options)
 
-# Coverage report generation
+# -----------------------------------------------------------------------------
+# coverage report
+# -----------------------------------------------------------------------------
 if(ENABLE_COVERAGE)
     find_program(LCOV lcov)
     find_program(GENHTML genhtml)

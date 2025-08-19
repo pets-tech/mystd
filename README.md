@@ -23,7 +23,7 @@ mystd is a stl-like library.
     - [x] list of fixed blocks  -> std::deque
 - [ ] hash table
     - [x] hash table on separate chaining -> my::hashtable
-        - [ ] my::unordered_map
+        - [x] my::unordered_map
         - [ ] my::unordered_set
         - [ ] my::unordered_multimap
         - [ ] my::unordered_multiset
