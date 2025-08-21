@@ -12,6 +12,7 @@ mystd is a stl-like library.
 - [x] arrays
     - [x] static (std::array)   -> my::array
     - [x] dynamic (std::vector) -> my::vector
+        - [ ] vector_buf
 - [x] singly/doubly linked list
     - [x] singly linked (std::forwdard_list)
         - [x] index and array            -> my::arraybased::forward_list
@@ -32,7 +33,8 @@ mystd is a stl-like library.
         - [x] my::unordered_multiset    (todo: should be tested better)
     - [ ] hash table on open addressing
 - [ ] trees
-    - [ ] binary tree
+    - [x] binary tree
+        - [ ] add iterator
     - [ ] binary search tree (BST)
     - [ ] ballanced tree (std::map)
         - [ ] AVL
