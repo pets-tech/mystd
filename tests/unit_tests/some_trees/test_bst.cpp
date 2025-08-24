@@ -6,103 +6,108 @@
 
 namespace my::testing {
 
-TEST(BSTTest, InsertAndSearch) {
-  binary_search_tree<int, int> bst;
-
-  bst.insert({5, 50});
-  bst.insert({3, 30});
-  bst.insert({7, 70});
-
-  auto* n1 = bst.search({5, 0});
-  ASSERT_NE(n1, nullptr);
-  EXPECT_EQ(n1->data.first, 5);
-  EXPECT_EQ(n1->data.second, 50);
-
-  auto* n2 = bst.search({3, 0});
-  ASSERT_NE(n2, nullptr);
-  EXPECT_EQ(n2->data.first, 3);
-
-  auto* n3 = bst.search({7, 0});
-  ASSERT_NE(n3, nullptr);
-  EXPECT_EQ(n3->data.first, 7);
-
-  auto* n4 = bst.search({42, 0});
-  EXPECT_EQ(n4, nullptr);
+TEST(BSTTest, InsertAndSearchRecursive) {
+  my::binary_search_tree<int, std::string> t;
+  EXPECT_FALSE(t.contains(1));
+  t.insert({1, "one"});
+  EXPECT_TRUE(t.contains(1));
+  EXPECT_FALSE(t.contains(2));
+  t.insert({2, "two"});
+  EXPECT_TRUE(t.contains(2));
 }
 
-TEST(BSTTest, ParentPointersAreCorrect) {
-  binary_search_tree<int, int> bst;
-
-  bst.insert({10, 100});
-  bst.insert({5, 50});
-  bst.insert({15, 150});
-
-  auto* root = bst.search({10, 0});
-  auto* left = bst.search({5, 0});
-  auto* right = bst.search({15, 0});
-
-  ASSERT_NE(root, nullptr);
-  ASSERT_NE(left, nullptr);
-  ASSERT_NE(right, nullptr);
-
-  EXPECT_EQ(left->parent, root);
-  EXPECT_EQ(right->parent, root);
-  EXPECT_EQ(root->parent, nullptr);
+TEST(BSTTest, InsertAndSearchIterative) {
+  my::binary_search_tree<int, std::string> t;
+  EXPECT_FALSE(t.containsi(1));
+  t.inserti({1, "one"});
+  EXPECT_TRUE(t.containsi(1));
+  EXPECT_FALSE(t.containsi(2));
+  t.inserti({2, "two"});
+  EXPECT_TRUE(t.containsi(2));
 }
 
-TEST(BSTTest, DeleteLeaf) {
-  binary_search_tree<int, int> bst;
-  bst.insert({5, 50});
-  bst.insert({3, 30});
-  bst.insert({7, 70});
-
-  bst.erase({3, 0});
-
-  EXPECT_EQ(bst.search({3, 0}), nullptr);
-  EXPECT_NE(bst.search({5, 0}), nullptr);
-  EXPECT_NE(bst.search({7, 0}), nullptr);
+TEST(BSTTest, EraseLeafNode) {
+  my::binary_search_tree<int, std::string> t;
+  t.insert({5, "five"});
+  t.insert({3, "three"});
+  t.insert({7, "seven"});
+  EXPECT_TRUE(t.contains(3));
+  t.erase(3);
+  EXPECT_FALSE(t.contains(3));
 }
 
-TEST(BSTTest, DeleteNodeWithOneChild) {
-  binary_search_tree<int, int> bst;
-  bst.insert({10, 100});
-  bst.insert({5, 50});
-  bst.insert({2, 20});
-
-  bst.erase({5, 0});
-
-  EXPECT_EQ(bst.search({5, 0}), nullptr);
-  auto* n = bst.search({2, 0});
-  ASSERT_NE(n, nullptr);
-  EXPECT_EQ(n->parent->data.first, 10);
+TEST(BSTTest, EraseNodeWithOneChild) {
+  my::binary_search_tree<int, std::string> t;
+  t.insert({5, "five"});
+  t.insert({3, "three"});
+  t.insert({7, "seven"});
+  t.insert({6, "six"});
+  t.insert({8, "eight"});
+  EXPECT_TRUE(t.contains(7));
+  t.erase(7);  // childs 6,8
+  EXPECT_FALSE(t.contains(7));
+  EXPECT_TRUE(t.contains(6));
+  EXPECT_TRUE(t.contains(8));
 }
 
-TEST(BSTTest, DeleteNodeWithTwoChildren) {
-  binary_search_tree<int, int> bst;
-  bst.insert({10, 100});
-  bst.insert({5, 50});
-  bst.insert({15, 150});
-  bst.insert({12, 120});
-  bst.insert({18, 180});
-
-  bst.erase({15, 0});
-
-  EXPECT_EQ(bst.search({15, 0}), nullptr);
-  EXPECT_NE(bst.search({12, 0}), nullptr);
-  EXPECT_NE(bst.search({18, 0}), nullptr);
+TEST(BSTTest, EraseNodeWithTwoChildren) {
+  my::binary_search_tree<int, std::string> t;
+  t.insert({5, "five"});
+  t.insert({3, "three"});
+  t.insert({7, "seven"});
+  t.insert({6, "six"});
+  t.insert({8, "eight"});
+  EXPECT_TRUE(t.contains(7));
+  t.erase(7);
+  EXPECT_FALSE(t.contains(7));
+  EXPECT_TRUE(t.contains(6));
+  EXPECT_TRUE(t.contains(8));
 }
 
-TEST(BSTTest, ClearTree) {
-  binary_search_tree<int, int> bst;
-  bst.insert({1, 10});
-  bst.insert({2, 20});
-  bst.insert({3, 30});
+TEST(BSTTest, CopyConstructor) {
+  my::binary_search_tree<int, std::string> t1;
+  t1.insert({1, "one"});
+  t1.insert({2, "two"});
 
-  bst.clear();
+  my::binary_search_tree<int, std::string> t2(t1);
+  EXPECT_TRUE(t2.contains(1));
+  EXPECT_TRUE(t2.contains(2));
+  t1.insert({3, "three"});
+  EXPECT_FALSE(t2.contains(3));
 
-  EXPECT_EQ(bst.search({1, 0}), nullptr);
-  EXPECT_EQ(bst.search({2, 0}), nullptr);
-  EXPECT_EQ(bst.search({3, 0}), nullptr);
+  my::binary_search_tree<int, std::string> t3;
+  t3 = t2;
+  EXPECT_TRUE(t3.contains(1));
+  EXPECT_TRUE(t3.contains(2));
+  t2.insert({3, "three"});
+  EXPECT_FALSE(t3.contains(3));
+}
+
+TEST(BSTTest, MoveConstructor) {
+  my::binary_search_tree<int, std::string> t1;
+  t1.insert({42, "answer"});
+  my::binary_search_tree<int, std::string> t2(std::move(t1));
+  EXPECT_TRUE(t2.contains(42));
+  EXPECT_FALSE(t1.contains(42));
+
+  my::binary_search_tree<int, std::string> t3;
+  t3 = std::move(t2);
+  EXPECT_TRUE(t3.contains(42));
+  EXPECT_FALSE(t2.contains(42));
+}
+
+TEST(BSTTest, EmptyTreeErase) {
+  my::binary_search_tree<int, std::string> t;
+  EXPECT_FALSE(t.contains(10));
+  EXPECT_NO_THROW(t.erase(10));
+}
+
+TEST(BSTTest, InsertDuplicateReplacesValue) {
+  my::binary_search_tree<int, std::string> t;
+  t.insert({1, "one"});
+  t.insert({1, "uno"});
+  EXPECT_TRUE(t.contains(1));
+  EXPECT_EQ(t.at(1), "uno");
 }
 
 }  // namespace my::testing

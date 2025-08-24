@@ -1,67 +1,119 @@
 #pragma once
+
 #include <cassert>
 #include <functional>
+#include <stack>
 #include <utility>
 
 namespace my {
 
+/*
+- balancing, avl or redblack
+- in delete_recursive -- x->data = m->data it is copy!!!
+- iterator
+- exeption safety in insert_*
+- implement delete_iterative
+- copy/move ctor and assignments
+- do API with just const Key& insteed value_type
+- eq_key -> equal and localy may be better
+- check public API bacause Node* is private
+- insert or assign
+
+*/
+
 template <class Key, class Value>
-struct KeyOfValueImpl {
-  using ValueType = std::pair<Key, Value>;
-  const Key& operator()(const ValueType& v) const noexcept { return v.first; }
+struct KeyOfValueImlp {
+  using value_type = std::pair<Key, Value>;
+  const Key& operator()(const value_type& v) const noexcept { return v.first; }
 };
 
-template <class Key, class Value, class KeyOfValue = KeyOfValueImpl<Key, Value>, class Compare = std::less<Key>>
+template <class Key, class Value, class KeyOfValue = KeyOfValueImlp<Key, Value>, class Compare = std::less<Key>>
 class binary_search_tree {
-  using ValueType = std::pair<Key, Value>;
+ public:
+  using value_type = std::pair<Key, Value>;
 
  private:
   struct Node {
-    ValueType data;
+    value_type data;
     Node* left = nullptr;
     Node* right = nullptr;
     Node* parent = nullptr;
-    explicit Node(const ValueType& v) : data(v) {}
+    explicit Node(const value_type& v) : data(v) {}
   };
 
   Node* root = nullptr;
-  KeyOfValue key_of_value{};
   Compare comp{};
+  KeyOfValue key_of_value{};
 
-  static bool eq_keys(const Compare& c, const Key& a, const Key& b) noexcept { return !c(a, b) && !c(b, a); }
-
-  Node* search_recursive(Node* x, const ValueType& v) const {
-    const Key& key = key_of_value(v);
-    while (x && !eq_keys(comp, key_of_value(x->data), key)) {
-      x = comp(key, key_of_value(x->data)) ? x->left : x->right;
-    }
-    return x;
+  static void clear(Node* x) noexcept {
+    if (!x) return;
+    clear(x->left);
+    clear(x->right);
+    delete x;
   }
 
-  Node* search_iterative(Node* x, const ValueType& v) const {
-    const Key& key = key_of_value(v);
+  /// @brief Compare keys.
+  bool equal(const Key& a, const Key& b) const noexcept(noexcept(comp(a, b))) { return !comp(a, b) && !comp(b, a); }
+
+  Node* search_recursive(Node* x, const Key& key) const {
+    if (!x) {
+      return nullptr;
+    }
+
+    if (equal(key_of_value(x->data), key)) {
+      return x;
+    }
+
+    if (comp(key, key_of_value(x->data))) {
+      return search_recursive(x->left, key);
+    } else {
+      return search_recursive(x->right, key);
+    }
+  }
+
+  Node* search_iterative(Node* x, const Key& key) const {
     Node* cur = x;
-    while (cur && !eq_keys(comp, key_of_value(cur->data), key)) {
-      cur = comp(key, key_of_value(cur->data)) ? cur->left : cur->right;
+    while (cur && !equal(key_of_value(cur->data), key)) {
+      if (comp(key, key_of_value(cur->data))) {
+        cur = cur->left;
+      } else {
+        cur = cur->right;
+      }
     }
     return cur;
   }
 
   Node* search_min(Node* x) const noexcept {
-    if (!x) return nullptr;
-    while (x->left) x = x->left;
+    if (!x) {
+      return nullptr;
+    }
+
+    while (x->left) {
+      x = x->left;
+    }
     return x;
   }
 
   Node* search_max(Node* x) const noexcept {
-    if (!x) return nullptr;
-    while (x->right) x = x->right;
+    if (!x) {
+      return nullptr;
+    }
+
+    while (x->right) {
+      x = x->right;
+    }
     return x;
   }
 
   Node* successor(Node* x) const noexcept {
-    if (!x) return nullptr;
-    if (x->right) return search_min(x->right);
+    if (!x) {
+      return nullptr;
+    }
+
+    if (x->right) {
+      return search_min(x->right);
+    }
+
     Node* y = x->parent;
     while (y && x == y->right) {
       x = y;
@@ -71,8 +123,14 @@ class binary_search_tree {
   }
 
   Node* predecessor(Node* x) const noexcept {
-    if (!x) return nullptr;
-    if (x->left) return search_max(x->left);
+    if (!x) {
+      return nullptr;
+    }
+
+    if (x->left) {
+      return search_max(x->left);
+    }
+
     Node* y = x->parent;
     while (y && x == y->left) {
       x = y;
@@ -81,124 +139,289 @@ class binary_search_tree {
     return y;
   }
 
-  Node* insert_recursive(Node* x, const ValueType& v, Node* parent = nullptr) {
-    if (!x) {
-      Node* n = new Node(v);
-      n->parent = parent;
-      return n;
-    }
-    const Key& key = key_of_value(v);
-    const Key& cur = key_of_value(x->data);
-
-    if (eq_keys(comp, key, cur)) {
-      x->data = v;
-      return x;
+  Node* insert_recursive(Node* node, const value_type& value) {
+    if (!node) {
+      return new Node(value);
     }
 
-    if (comp(key, cur)) {
-      x->left = insert_recursive(x->left, v, x);
-    } else {
-      x->right = insert_recursive(x->right, v, x);
-    }
-    return x;
-  }
+    const Key& key = key_of_value(value);
+    const Key& node_key = key_of_value(node->data);
 
-  Node* insert_iterative(Node* x, const ValueType& v) {
-    if (!x) {
-      root = new Node(v);
-      return root;
+    if (equal(key, node_key)) {
+      node->data = value;
+      return node;
     }
-    const Key& key = key_of_value(v);
-    Node* prev = nullptr;
-    Node* curr = x;
-    while (curr) {
-      prev = curr;
-      const Key& cur = key_of_value(curr->data);
-      if (eq_keys(comp, key, cur)) {
-        curr->data = v;
-        return curr;
+
+    if (comp(key, node_key)) {
+      node->left = insert_recursive(node->left, value);
+      if (node->left) {
+        node->left->parent = node;
       }
-      curr = comp(key, cur) ? curr->left : curr->right;
+    } else {
+      node->right = insert_recursive(node->right, value);
+      if (node->right) {
+        node->right->parent = node;
+      }
     }
-    Node* node = new Node(v);
-    node->parent = prev;
-    if (comp(key, key_of_value(prev->data)))
-      prev->left = node;
-    else
-      prev->right = node;
     return node;
   }
 
-  Node* delete_recursive(Node* x, const ValueType& v) {
-    if (!x) return nullptr;
-    const Key& k = key_of_value(v);
-    const Key& cur = key_of_value(x->data);
+  Node* insert_iterative(Node* node, const value_type& value) {
+    if (!node) {
+      return new Node(value);
+    }
 
-    if (comp(k, cur)) {
-      x->left = delete_recursive(x->left, v);
-      if (x->left) x->left->parent = x;
-    } else if (comp(cur, k)) {
-      x->right = delete_recursive(x->right, v);
-      if (x->right) x->right->parent = x;
+    const Key& key = key_of_value(value);
+
+    Node* parent = nullptr;
+    Node* cur = node;
+    while (cur) {
+      parent = cur;
+      if (equal(key, key_of_value(cur->data))) {
+        cur->data = value;
+        return node;
+      }
+
+      if (comp(key, key_of_value(cur->data))) {
+        cur = cur->left;
+      } else {
+        cur = cur->right;
+      }
+    }
+
+    Node* new_node = new Node(value);
+    if (comp(key, key_of_value(parent->data))) {
+      parent->left = new_node;
     } else {
-      if (!x->left) {
-        Node* r = x->right;
-        if (r) r->parent = x->parent;
-        delete x;
+      parent->right = new_node;
+    }
+    new_node->parent = parent;
+    return node;
+  }
+
+  Node* delete_recursive(Node* node, const Key& key) {
+    if (!node) {
+      return nullptr;
+    }
+
+    const Key& node_key = key_of_value(node->data);
+
+    if (comp(key, node_key)) {
+      node->left = delete_recursive(node->left, key);
+      if (node->left) {
+        node->left->parent = node;
+      }
+    } else if (comp(node_key, key)) {
+      node->right = delete_recursive(node->right, key);
+      if (node->right) {
+        node->right->parent = node;
+      }
+    } else {
+      // case 1 no left child
+      if (!node->left) {
+        Node* r = node->right;
+        if (r) {
+          r->parent = node->parent;
+        }
+        delete node;
         return r;
       }
-      if (!x->right) {
-        Node* l = x->left;
-        if (l) l->parent = x->parent;
-        delete x;
+
+      // case 2 no right child
+      if (!node->right) {
+        Node* l = node->left;
+        if (l) {
+          l->parent = node->parent;
+        }
+        delete node;
         return l;
       }
 
-      Node* m = search_min(x->right);
-      x->data = m->data;
-      x->right = delete_recursive(x->right, m->data);
-      if (x->right) x->right->parent = x;
+      // case 3 both childs
+
+      Node* succ = search_min(node->right);  // smallest node in right subtree
+
+      if (succ->parent != node) {
+        succ->parent->left = succ->right;
+        if (succ->right) {
+          succ->right->parent = succ->parent;
+        }
+        succ->right = node->right;
+        if (succ->right) {
+          succ->right->parent = succ;
+        }
+      }
+
+      succ->left = node->left;
+
+      if (succ->left) {
+        succ->left->parent = succ;
+      }
+
+      succ->parent = node->parent;
+      delete node;
+
+      return succ;
     }
-    return x;
+    return node;
   }
 
-  Node* delete_iterative(Node* x, const ValueType& v) {
-    assert(false && "[delete_iterative] not implemented.");
-    return x;
+  Node* delete_iterative(Node* root, const Key& key) {
+    Node* node = root;
+    Node* parent = nullptr;
+
+    // search node to remove
+    while (node && !equal(key, key_of_value(node->data))) {
+      parent = node;
+
+      if (comp(key, key_of_value(node->data))) {
+        node = node->left;
+      } else {
+        node = node->right;
+      }
+    }
+
+    // node is not found
+    if (!node) {
+      return root;
+    }
+
+    // found node with both childs
+    if (node->left && node->right) {
+      Node* succ = search_min(node->right);
+
+      if (succ->parent != node) {
+        succ->parent->left = succ->right;
+        if (succ->right) {
+          succ->right->parent = succ->parent;
+        }
+        succ->right = node->right;
+        if (succ->right) {
+          succ->right->parent = succ;
+        }
+      }
+
+      succ->left = node->left;
+      if (succ->left) {
+        succ->left->parent = succ;
+      }
+
+      if (!parent) {
+        root = succ;
+      } else if (parent->left == node) {
+        parent->left = succ;
+      } else {
+        parent->right = succ;
+      }
+
+      succ->parent = parent;
+
+      delete node;
+      return root;
+    }
+
+    // node has 0 or 1 child
+    Node* child = node->left ? node->left : node->right;
+    if (child) {
+      child->parent = parent;
+    }
+
+    if (!parent) {
+      root = child;
+    } else if (parent->left == node) {
+      parent->left = child;
+    } else {
+      parent->right = child;
+    }
+
+    delete node;
+    return root;
   }
 
-  static void clear(Node* x) noexcept {
-    if (!x) return;
-    clear(x->left);
-    clear(x->right);
-    delete x;
+  Node* safe_copy(Node* root) {
+    if (!root) {
+      return nullptr;
+    }
+
+    Node* new_root = nullptr;
+    try {
+      new_root = new Node(root->data);
+      std::stack<std::pair<Node*, Node*>> stack;
+      stack.push({root, new_root});
+
+      while (!stack.empty()) {
+        auto [old_node, new_node] = stack.top();
+        stack.pop();
+
+        if (old_node->right) {
+          new_node->right = new Node(old_node->right->data);
+          new_node->right->parent = new_node;
+          stack.push({old_node->right, new_node->right});
+        }
+
+        if (old_node->left) {
+          new_node->left = new Node(old_node->left->data);
+          new_node->left->parent = new_node;
+          stack.push({old_node->left, new_node->left});
+        }
+      }
+    } catch (...) {
+      clear(new_root);
+      throw;
+    }
+    return new_root;
   }
 
  public:
   binary_search_tree() noexcept = default;
+
+  binary_search_tree(const binary_search_tree& other) { root = safe_copy(other.root); };
+
+  binary_search_tree(binary_search_tree&& other) : root(std::exchange(other.root, nullptr)) {};
+
+  binary_search_tree& operator=(const binary_search_tree& other) {
+    if (this != &other) {
+      binary_search_tree tmp(other);
+      swap(tmp);
+    }
+    return *this;
+  }
+
+  binary_search_tree& operator=(binary_search_tree&& other) {
+    if (this != &other) {
+      clear(root);
+      root = std::exchange(other.root, nullptr);
+    }
+    return *this;
+  }
+
   ~binary_search_tree() { clear(root); }
 
-  // just because i'm lazy now
-  binary_search_tree(const binary_search_tree&) = delete;
-  binary_search_tree& operator=(const binary_search_tree&) = delete;
-  binary_search_tree(binary_search_tree&&) noexcept = default;
-  binary_search_tree& operator=(binary_search_tree&&) noexcept = default;
-
-  void clear() noexcept {
-    clear(root);
-    root = nullptr;
+  Value at(const Key& key) const {
+    Node* node = search_recursive(root, key);
+    if (!node) {
+      throw std::out_of_range("");
+    }
+    return node->data.second;
   }
 
-  Node* insert(const ValueType& v) {
-    root = insert_recursive(root, v);
-    return search_recursive(root, v);
-  }
-  Node* search(const ValueType& v) const { return search_recursive(root, v); }
-  void erase(const ValueType& v) { root = delete_recursive(root, v); }
+  // recursive API
 
-  Node* inserti(const ValueType& v) { return insert_iterative(root, v); }
-  Node* searchi(const ValueType& v) const { return search_iterative(root, v); }
-  void erasei(const ValueType& v) { root = delete_iterative(root, v); }
+  void insert(const value_type& value) { root = insert_recursive(root, value); }
+
+  bool contains(const Key& key) const { return search_recursive(root, key) != nullptr; }
+
+  void erase(const Key& key) { root = delete_recursive(root, key); }
+
+  // iterative API
+
+  void inserti(const value_type& value) { root = insert_iterative(root, value); }
+
+  bool containsi(const Key& key) const { return search_iterative(root, key) != nullptr; }
+
+  void erasei(const Key& key) { root = delete_iterative(root, key); }
+
+  void swap(binary_search_tree& other) noexcept { std::swap(root, other.root); }
 };
 
 }  // namespace my
