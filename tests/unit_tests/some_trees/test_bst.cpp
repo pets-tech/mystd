@@ -110,4 +110,24 @@ TEST(BSTTest, InsertDuplicateReplacesValue) {
   EXPECT_EQ(t.at(1), "uno");
 }
 
+TEST(BSTTest, Iterators) {
+  my::binary_search_tree<int, std::string> t;
+  t.insert({5, "five"});
+  t.insert({3, "three"});
+  t.insert({7, "seven"});
+  t.insert({6, "six"});
+  t.insert({8, "eight"});
+
+  auto it = t.begin();
+  auto ite = t.end();
+
+  EXPECT_EQ((*it).second, "three");
+
+  std::vector<int> answer = {3, 5, 6, 7, 8};
+  int i = 0;
+  for (const auto& n : t) {
+    EXPECT_EQ(n.first, answer[i++]);
+  }
+}
+
 }  // namespace my::testing

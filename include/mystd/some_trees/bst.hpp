@@ -373,6 +373,48 @@ class binary_search_tree {
   }
 
  public:
+  // inorder forward iterator (left -> vert -> right)
+  template <bool IsConst>
+  class iterator_basic {
+   private:
+    Node* current;
+
+   public:
+    iterator_basic(Node* n = nullptr) : current(n) {}
+
+    value_type& operator*() { return current->data; }
+
+    value_type* operator->() { return &(current->data); }
+
+    iterator_basic& operator++() {
+      if (!current) {
+        return *this;
+      }
+      if (current->right) {
+        current = current->right;
+        while (current->left) {
+          current = current->left;
+        }
+      } else {
+        Node* p = current->parent;
+        while (p && current == p->right) {
+          current = p;
+          p = p->parent;
+        }
+        current = p;
+      }
+      return *this;
+    }
+
+    bool operator==(const iterator_basic& other) const { return current == other.current; }
+
+    bool operator!=(const iterator_basic& other) const { return current != other.current; }
+  };
+
+  using iterator = iterator_basic<false>;
+  using const_iterator = iterator_basic<true>;
+
+ public:
   binary_search_tree() noexcept = default;
 
   binary_search_tree(const binary_search_tree& other) { root = safe_copy(other.root); };
@@ -422,6 +464,21 @@ class binary_search_tree {
   void erasei(const Key& key) { root = delete_iterative(root, key); }
 
   void swap(binary_search_tree& other) noexcept { std::swap(root, other.root); }
+
+  // iterators
+
+  iterator begin() {
+    Node* n = root;
+    if (!n) {
+      return iterator(nullptr);
+    }
+    while (n->left) {
+      n = n->left;
+    }
+    return iterator(n);
+  }
+
+  iterator end() { return iterator(nullptr); }
 };
 
 }  // namespace my
