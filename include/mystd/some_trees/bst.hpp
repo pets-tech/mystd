@@ -378,30 +378,25 @@ class binary_search_tree {
   class iterator_basic {
    private:
     Node* current;
+    const binary_search_tree<Key, Value>* tree;
 
    public:
-    iterator_basic(Node* n = nullptr) : current(n) {}
+    iterator_basic(Node* n, const binary_search_tree<Key, Value>* t) : current(n), tree(t) {}
 
     value_type& operator*() { return current->data; }
 
     value_type* operator->() { return &(current->data); }
 
     iterator_basic& operator++() {
+      current = tree->successor(current);
+      return *this;
+    }
+
+    iterator_basic& operator--() {
       if (!current) {
-        return *this;
-      }
-      if (current->right) {
-        current = current->right;
-        while (current->left) {
-          current = current->left;
-        }
+        current = tree->search_max(tree->root);
       } else {
-        Node* p = current->parent;
-        while (p && current == p->right) {
-          current = p;
-          p = p->parent;
-        }
-        current = p;
+        current = tree->predecessor(current);
       }
       return *this;
     }
@@ -467,18 +462,9 @@ class binary_search_tree {
 
   // iterators
 
-  iterator begin() {
-    Node* n = root;
-    if (!n) {
-      return iterator(nullptr);
-    }
-    while (n->left) {
-      n = n->left;
-    }
-    return iterator(n);
-  }
+  iterator begin() { return iterator(search_min(root), this); }
 
-  iterator end() { return iterator(nullptr); }
+  iterator end() { return iterator(nullptr, this); }
 };
 
 }  // namespace my

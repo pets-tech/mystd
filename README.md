@@ -34,11 +34,12 @@ mystd is a stl-like library.
     - [ ] hash table on open addressing
 - [ ] trees
     - [x] binary tree
-        - [ ] add iterator
-    - [ ] binary search tree (BST)
+    - [x] binary search tree (BST)
+        - [x] add iterator
     - [ ] ballanced tree (std::map)
         - [ ] AVL
         - [ ] red black -> std::map, std::set
+        - [ ] treep
     - [ ] trie
     - [ ] segment tree
 - [ ] heaps
