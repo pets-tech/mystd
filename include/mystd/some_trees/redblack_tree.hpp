@@ -7,7 +7,7 @@
 
 namespace my {
 
-enum node_colors { RED, BLACK };
+enum class node_colors { RED, BLACK };
 
 /// @brief Red black tree has invariants:
 /// 1. node -- red || black
@@ -138,89 +138,67 @@ class redblack_tree {
   ///
   ///
   ///
-  Node* insert_rebalance(Node* n) {
-    std::cout << n << "\n";
+  void insert_and_rebalance(bool insert_left, Node* node, Node* parent) {
+    node->parent = parent;
 
-    // case 1 root -- recolor to black
-    if (n->parent == nullptr) {
-      n->color = node_colors::BLACK;
-      return n;
-    }
-
-    // case2 parent is black it is ok
-    if (n->parent->color == node_colors::BLACK) {
-      return n;
-    }
-
-    // case3 and nested --  parent is red
-    Node* u = uncle(n);
-    Node* g = grandparent(n);
-
-    if (u != nullptr && u->color == node_colors::RED) {
-      // case -- uncle is red
-
-      // recolor recursive
-      n->parent->color = node_colors::BLACK;
-      u->color = node_colors::BLACK;
-      g->color = node_colors::RED;
-      insert_rebalance(g);
-      return
-
+    // insert as in BST
+    if (insert_left) {
+      parent->left = node;
     } else {
-      // case -- uncle is black
+      parent->right = node;
+    }
+
+    // rebalance
+    while (node != root && node->parent->color == node_colors::RED) {
+      Node* p = node->parent;
+      Node* g = grandparent(node);
+      Node* u = uncle(node);
+
+      // uncle is red
+      if (u && u->color == node_colors::RED) {
+        p->color = node_colors::BLACK;
+        u->color = node_colors::BLACK;
+        g->color = node_colors::RED;
+        node = g;
+        continue;
+      }
+
+      // uncle is black or nullptr
 
       // triangle case
-      if (n == n->parent->right && n->parent == g->left) {
-        n = rotate_left(n->parent);
-      } else if (n == n->parent->left && n->parent == g->right) {
-        n = rotate_right(n->parent);
+      if (node == p->right && p == g->left) {
+        g->left = rotate_left(p);
+      } else if (node == p->left && p == g->right) {
+        g->right = rotate_left(p);
       }
 
       // line case
-      n->parent->color = node_colors::BLACK;
+      p->color = node_colors::BLACK;
       g->color = node_colors::RED;
-      if (n == n->parent->left && n->parent == g->left) {
-        return rotate_right(g);
-      } else {
-        return rotate_left(g);
+      if (node == p->left && p == g->left) {
+        if (g->parent) {
+          if (g == g->parent->left) {
+            g->parent->left = rotate_right(g);
+          } else {
+            g->parent->right = rotate_right(g);
+          }
+        } else {
+          root = rotate_right(g);
+        }
+      } else if (node == p->right && p == g->right) {
+        if (g->parent) {
+          if (g == g->parent->left) {
+            g->parent->left = rotate_left(g);
+          } else {
+            g->parent->right = rotate_left(g);
+          }
+        } else {
+          root = rotate_left(g);
+        }
       }
+
+      root->color = node_colors::BLACK;
     }
-
-    return n;  // tree was ok
-  }
-
-  void pr(Node* n) {
-    while (n) {
-      std::cout << n << " right: " << n->parent << "\n";
-      n = n->right;
-    }
-  }
-
-  Node* insert(Node* node, Node* parent, const ValueType& v) {
-    if (!node) {
-      Node* new_node = new Node(v);
-      // Node* res = insert_rebalance(new_node);
-      // while (res && res->parent) res = res->parent;
-      return new_node;
-    }
-
-    const Key& key = v.first;
-
-    if (cmp(key, node->data.first)) {
-      node->left = insert(node->left, node, v);
-      if (node->left) {
-        node->left->parent = node;
-      }
-    } else if (cmp(node->data.first, key)) {
-      node->right = insert(node->right, node, v);
-      if (node->right) {
-        node->right->parent = node;
-      }
-    } else {
-      return node;
-    }
-
-    return node;
   }
 
   void clear(Node* node) {
@@ -278,7 +256,36 @@ class redblack_tree {
 
   void clear() { clear(root); }
 
-  void insert(const ValueType& kv) { root = insert(root, nullptr, kv); }
+  void insert(const ValueType& kv) {
+    Node* new_node = new Node(kv);
+
+    if (root == nullptr) {
+      root = new_node;
+      root->color = node_colors::BLACK;
+      return;
+    }
+
+    // find place to insert
+    Node* current = root;
+    Node* parent = nullptr;
+    bool insert_left = true;
+
+    const Key& key = kv.first;
+
+    while (current != nullptr) {
+      parent = current;
+      if (cmp(key, current->data.first)) {
+        current = current->left;
+        insert_left = true;
+      } else if (cmp(current->data.first, key)) {
+        current = current->right;
+        insert_left = false;
+      }
+    }
+
+    // insert and rebalance
+    insert_and_rebalance(insert_left, new_node, parent);
+  }
 
   iterator begin() { return iterator(minimum(root)); }
 
@@ -287,13 +294,15 @@ class redblack_tree {
   void print_tree(Node* node, int indent = 0) const {
     if (!node) return;
     const int SPACES = 2;
-    if (node->right) print_tree(node->right, indent + SPACES);
-    if (indent) std::cout << std::setw(indent) << ' ';
-    std::cout << node->data.first << "\n";
-    if (node->left) print_tree(node->left, indent + SPACES);
+    print_tree(node->right, indent + SPACES);
+    std::cout << std::setw(indent) << ' ';
+    std::cout << node->data.first << (node->color == node_colors::RED ? " (R)" : " (B)") << node
+              << " parent=" << (node->parent ? node->parent : 0) << " right=" << (node->right ? node->right : 0)
+              << "\n";
+    print_tree(node->left, indent + SPACES);
   }
 
-  void print() { print_tree(root, 1); }
+  void print() { print_tree(root, 0); }
 };
 
 }  // namespace my
