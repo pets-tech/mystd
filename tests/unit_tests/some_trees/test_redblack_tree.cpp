@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <iostream>
+#include <random>
 #include <vector>
 
 #include "mystd/some_trees/redblack_tree.hpp"
@@ -32,6 +33,8 @@ TEST(RedBlackTreeTest, InsertEraseSimple) {
   EXPECT_EQ(t.root->color, my::node_colors::BLACK);
   EXPECT_EQ(t.root->left->color, my::node_colors::RED);
   EXPECT_EQ(t.root->right->color, my::node_colors::RED);
+
+  EXPECT_TRUE(t.validate());
 }
 
 TEST(RedBlackTreeTest, BalanceRotateLeft) {
@@ -47,6 +50,8 @@ TEST(RedBlackTreeTest, BalanceRotateLeft) {
   EXPECT_EQ(t.root->color, my::node_colors::BLACK);
   EXPECT_EQ(t.root->left->color, my::node_colors::RED);
   EXPECT_EQ(t.root->right->color, my::node_colors::RED);
+
+  EXPECT_TRUE(t.validate());
 }
 
 TEST(RedBlackTreeTest, BalanceRotateRight) {
@@ -62,6 +67,8 @@ TEST(RedBlackTreeTest, BalanceRotateRight) {
   EXPECT_EQ(t.root->color, my::node_colors::BLACK);
   EXPECT_EQ(t.root->left->color, my::node_colors::RED);
   EXPECT_EQ(t.root->right->color, my::node_colors::RED);
+
+  EXPECT_TRUE(t.validate());
 }
 
 TEST(RedBlackTreeTest, BalanceFromBook) {
@@ -97,6 +104,27 @@ TEST(RedBlackTreeTest, BalanceFromBook) {
 
   EXPECT_EQ(t.root->right->right->right->data.first, 26);
   EXPECT_EQ(t.root->right->right->right->color, my::node_colors::RED);
+
+  EXPECT_TRUE(t.validate());
+}
+
+TEST(RedBlackTreeTest, Random) {
+  static std::mt19937 gen(std::random_device{}());
+  std::uniform_int_distribution<int> dist(0, 100);
+
+  my::redblack_tree<int, int> t;
+
+  for (size_t i = 50; i > 0; --i) {
+    // for (size_t i = 0; i < 50; ++i) {
+
+    // int x = dist(gen);
+    int x = i;
+    t.insert({x, x * 10});
+  }
+
+  EXPECT_TRUE(t.validate());
+  EXPECT_TRUE(t.check_height_2logN());
+  t.print();
 }
 
 }  // namespace my::testing
