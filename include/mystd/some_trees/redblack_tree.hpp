@@ -8,21 +8,24 @@
 namespace my {
 
 enum class node_colors { RED, BLACK };
+enum class direction { LEFT, RIGHT };
 
 /// @brief Red black tree has invariants:
 /// 1. node -- red || black
 /// 2. root -- black
 /// 3. leafs -- black
-/// 4. can not -- red node and red node->parent
+/// 4. double red
 /// 5. black-height eq to any leafs
 ///
 /// from wiki notation: n - node, p - parent, g - grandparent, u - uncle
+///   s - sibling, d - distanct nephew, c - close nephew
 ///       g
 ///      / \
 ///     p   u
-///      \
-///       n
-///
+///    / \
+///   s  n
+///  / \
+/// d   c
 template <class Key, class Value, class Compare = std::less<Key>>
 class redblack_tree {
   using ValueType = std::pair<Key, Value>;
@@ -62,8 +65,9 @@ class redblack_tree {
     return (n == n->parent->left) ? n->parent->right : n->parent->left;
   }
 
+  /// @brief sets v subtree instead u
   void transplant(Node* u, Node* v) {
-    if (!u->parent) {
+    if (u->parent == nullptr) {
       root = v;
     } else if (u == u->parent->left) {
       u->parent->left = v;
@@ -141,18 +145,7 @@ class redblack_tree {
 
     pivot->right = n;
     n->parent = pivot;
-
     return pivot;
-  }
-
-  Node* rotate(Node* n, const char direction) {
-    switch (direction) {
-      case 'l':
-        return rotate_left(n);
-      case 'r':
-        return rotate_right(n);
-    }
-    return nullptr;
   }
 
   /// @brief Defenetly it is same as in libstdc++
@@ -304,72 +297,77 @@ class redblack_tree {
     return y;
   }
 
-  /// @brief en wiki aproach
+  /// @brief wiki aproach
   void erase_rebalance(Node* x, Node* parent) {
     while ((x != root) && (x == nullptr || x->color == node_colors::BLACK)) {
-      if (!parent) break;  // safety
       if (parent->left == x) {
         Node* s = parent->right;
-        // case 3: sibling red
+
+        // case 1 - sibling is red
         if (s && s->color == node_colors::RED) {
           s->color = node_colors::BLACK;
           parent->color = node_colors::RED;
-          // rotate_left on parent; update parent pointer to new subtree root
-          parent = rotate_left(parent);
-          // after rotation sibling changed
+          // parent = rotate_left(parent);
+          rotate_left(parent);
           s = parent->right;
-          // now sibling is black (or nullptr)
-          break;
         }
 
-        // delete case 1
-        if (!s || ((s->left == nullptr || s->left->color == node_colors::BLACK) &&
-                   (s->right == nullptr || s->right->color == node_colors::BLACK))) {
-          if (s) s->color = node_colors::RED;
+        // sibling is black
 
-          // move "double-black" up
+        if (s != nullptr && (!s->left || s->left->color == node_colors::BLACK) &&
+            (!s->right || s->right->color == node_colors::BLACK)) {
+          // case 2
+          s->color = node_colors::RED;
           x = parent;
-          parent = x->parent;
+          if (x != root) parent = x->parent;
         } else {
-          if (s->right == nullptr || s->right->color == node_colors::BLACK) {
+          // case 3
+          if (!s->right || s->right->color == node_colors::BLACK) {
             if (s->left) s->left->color = node_colors::BLACK;
-            if (s) s->color = node_colors::RED;
-            s = rotate_right(s);
-            // after rotate_right(s) sibling becomes parent->right
-            if (parent) s = parent->right;
+            s->color = node_colors::RED;
+            rotate_right(s);
+            s = parent->right;
           }
-          // case final
-          if (s) s->color = parent->color;
-          parent->color = node_colors::BLACK;
-          if (s && s->right) s->right->color = node_colors::BLACK;
-          parent = rotate_left(parent);
-          x = root;  // clear double-black
+          // case 4
+          s->color = parent->color;
+          s->parent->color = node_colors::BLACK;
+          if (s->right) s->right->color = node_colors::BLACK;
+          rotate_left(parent);
+          x = root;
         }
-      } else {  // symmetric
+      } else {
         Node* s = parent->left;
+
+        // case 1 - sibling is red
         if (s && s->color == node_colors::RED) {
           s->color = node_colors::BLACK;
           parent->color = node_colors::RED;
-          parent = rotate_right(parent);
+          // parent = rotate_right(parent);
+          rotate_right(parent);
           s = parent->left;
-          break;
         }
-        if (!s || ((s->left == nullptr || s->left->color == node_colors::BLACK) &&
-                   (s->right == nullptr || s->right->color == node_colors::BLACK))) {
-          if (s) s->color = node_colors::RED;
+
+        // sibling is black
+
+        if (s != nullptr && (!s->left || s->left->color == node_colors::BLACK) &&
+            (!s->right || s->right->color == node_colors::BLACK)) {
+          // case 2
+          s->color = node_colors::RED;
           x = parent;
-          parent = x->parent;
+          if (x != root) parent = x->parent;
         } else {
-          if (s->left == nullptr || s->left->color == node_colors::BLACK) {
-            if (s->right) s->right->color = node_colors::BLACK;
-            if (s) s->color = node_colors::RED;
-            s = rotate_left(s);
-            if (parent) s = parent->left;
+          // case 3
+          if (!s->left || s->left->color == node_colors::BLACK) {
+            s->right->color = node_colors::BLACK;
+            s->color = node_colors::RED;
+            rotate_left(s);
+            s = parent->left;
           }
-          if (s) s->color = parent->color;
+          // case 4
+          s->color = parent->color;
           parent->color = node_colors::BLACK;
-          if (s && s->left) s->left->color = node_colors::BLACK;
-          parent = rotate_right(parent);
+          if (s->left) s->left->color = node_colors::BLACK;
+          rotate_right(parent);
           x = root;
         }
       }
@@ -506,7 +504,6 @@ class redblack_tree {
       erase_rebalance(x, x_parent);
     }
 
-    // z->left = z->right = z->parent = nullptr;
     delete z;
     --size_;
   }
@@ -518,14 +515,19 @@ class redblack_tree {
 
   iterator end() { return iterator(nullptr); }
 
-  void print_tree(Node* node, int indent = 0) const {
+  void print_tree(Node* node, int indent = 0, bool debug = false) const {
     if (!node) return;
     const int SPACES = 2;
     print_tree(node->right, indent + SPACES);
     std::cout << std::setw(indent) << ' ';
-    std::cout << node->data.first << (node->color == node_colors::RED ? " (R)" : " (B)") << node
-              << " parent=" << (node->parent ? node->parent : 0) << " left=" << (node->left ? node->left : 0)
-              << " right=" << (node->right ? node->right : 0) << "\n";
+
+    if (debug) {
+      std::cout << node->data.first << (node->color == node_colors::RED ? " (R)" : " (B)") << node
+                << " parent=" << (node->parent ? node->parent : 0) << " left=" << (node->left ? node->left : 0)
+                << " right=" << (node->right ? node->right : 0) << "\n";
+    } else {
+      std::cout << node->data.first << (node->color == node_colors::RED ? "R" : "B") << "\n";
+    }
     print_tree(node->left, indent + SPACES);
   }
 
@@ -578,6 +580,14 @@ class redblack_tree {
   }
 
   bool is_binary_tree() { return verify_binary_tree(root); }
+
+  void inorder(Node* current, std::vector<int>& result) {
+    if (current) {
+      inorder(current->left, result);
+      result.push_back(current->data.first);
+      inorder(current->right, result);
+    }
+  }
 };
 
 }  // namespace my
