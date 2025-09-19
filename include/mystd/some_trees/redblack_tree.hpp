@@ -3,12 +3,12 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <sstream>
 
 namespace my {
 
 enum class node_colors { RED, BLACK };
-enum class direction { LEFT, RIGHT };
 
 /// @brief Red black tree has invariants:
 /// 1. node -- red || black
@@ -119,9 +119,9 @@ class redblack_tree {
   ///       |child      |child
   ///       n         pivot
   ///     /  \        /  \
-    ///  pivot  c  =>  a    n
+  ///  pivot  c  =>  a    n
   ///  /  \              / \
-    /// a    b            b   c
+  /// a    b            b   c
   Node* rotate_right(Node* n) {
     if (!n || !n->left) return n;
 
@@ -164,8 +164,6 @@ class redblack_tree {
   ///      /  ->       \
   ///     n   ->        n
   ///
-  ///
-  ///
   void insert_and_rebalance(bool insert_left, Node* node, Node* parent) {
     node->parent = parent;
 
@@ -190,9 +188,7 @@ class redblack_tree {
         node = g;
         continue;
       }
-
       // uncle is black or nullptr
-
       // triangle case
       if (node == p->right && p == g->left) {
         g->left = rotate_left(p);
@@ -239,6 +235,35 @@ class redblack_tree {
     clear(node->left);
     clear(node->right);
     delete node;
+  }
+
+  Node* find(Node* node, const Key& key) {
+    if (node == nullptr) {
+      return node;
+    }
+
+    if (cmp(key, node->data.first)) {
+      return find(node->left, key);
+    } else if (cmp(node->data.first, key)) {
+      return find(node->right, key);
+    } else {
+      return node;
+    }
+  }
+
+  // ! dublicates in right subtree
+  size_t count(Node* node, const Key& key) {
+    if (node == nullptr) {
+      return 0;
+    }
+
+    if (cmp(key, node->data.first)) {
+      return count(node->left, key);
+    } else if (cmp(node->data.first, key)) {
+      return count(node->right, key);
+    } else {
+      return 1 + count(node->right, key);
+    }
   }
 
   static Node* search_min(Node* x) {
@@ -406,6 +431,7 @@ class redblack_tree {
   };
 
   using iterator = iterator_basic;
+  using const_iterator = iterator_basic;
 
  public:
   redblack_tree() {}
@@ -506,6 +532,39 @@ class redblack_tree {
 
     delete z;
     --size_;
+  }
+
+  Value find(const Key& key) {
+    Node* node = root;
+    auto result = find(node, key);
+
+    if (result == nullptr) {
+      return std::numeric_limits<Value>::max();
+    }
+    return result->data.second;
+  }
+
+  Value& operator[](const Key& key) {
+    Node* node = root;
+    auto val = find(node, key);
+    return val->data.second;
+  }
+
+  bool contains(const Key& key) {
+    auto result = find(key);
+
+    Value max_val = std::numeric_limits<Value>::max();
+    Value relative_diff = std::fabs(1.0 - result / max_val);
+
+    if (relative_diff < 10e-3) {
+      return false;
+    }
+    return true;
+  }
+
+  size_t count(const Key& key) {
+    Node* node = root;
+    return count(node, key);
   }
 
   size_t size() const { return size_; }

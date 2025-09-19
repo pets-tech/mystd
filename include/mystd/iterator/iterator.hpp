@@ -5,77 +5,126 @@
 
 namespace my {
 
-/// base stupid interface, because may be used instead
-/// more low iterator category (input, output, etc.)
-template <typename T, bool IsConst, typename Category>
-struct iterator {
-  using iterator_category = Category;
-  using value_type = T;
-  using difference_type = std::ptrdiff_t;
-  using reference = std::conditional_t<IsConst, const T&, T&>;
-  using pointer = std::conditional_t<IsConst, const T*, T*>;
+// traversal policies
 
-  pointer base() const;
+template <typename NodePtr>
+struct TreeTraversalPolicy {
+  static NodePtr next(NodePtr node) {
+    if (!node) return nullptr;
+    if (node->right) {
+      node = node->right;
+      while (node->left) node = node->left;
+      return node;
+    }
+    NodePtr parent = node->parent;
+    while (parent && node == parent->right) {
+      node = parent;
+      parent = parent->parent;
+    }
+    return parent;
+  }
+
+  static NodePtr prev(NodePtr node) {
+    if (!node) return nullptr;
+    if (node->left) {
+      node = node->left;
+      while (node->right) node = node->right;
+      return node;
+    }
+    NodePtr parent = node->parent;
+    while (parent && node == parent->left) {
+      node = parent;
+      parent = parent->parent;
+    }
+    return parent;
+  }
 };
 
-// forward (++ only)
-template <typename T, bool IsConst = false, typename Category = std::forward_iterator_tag>
-class forward_iterator : public iterator<T, IsConst, Category> {
- protected:
-  using Base = iterator<T, IsConst, Category>;
+template <typename NodePtr>
+struct ListTraversalPolicy {
+  static NodePtr next(NodePtr node) { return node ? node->next : nullptr; }
+  static NodePtr prev(NodePtr node) { return node ? node->prev : nullptr; }
+};
 
+template <typename NodePtr>
+struct ArrayTraversalPolicy {
+  static NodePtr next(NodePtr node) { return node ? node + 1 : nullptr; }
+  static NodePtr prev(NodePtr node) { return node ? node - 1 : nullptr; }
+};
+
+// value extractors
+
+template <typename T>
+struct DefaultValueExtractor {
+  T& operator()(auto* node) const { return node->value; }
+  const T& operator()(const auto* node) const { return node->value; }
+};
+
+template <typename T>
+struct ArrayValueExtractor {
+  T& operator()(T* node) const { return *node; }
+  const T& operator()(const T* node) const { return *node; }
+};
+
+/// forward iterator
+template <typename ValueType, typename NodePtr, bool IsConst = false, typename Category = std::forward_iterator_tag,
+          typename TraversalPolicy = TreeTraversalPolicy<NodePtr>,
+          typename ValueExtractor = DefaultValueExtractor<ValueType>>
+class iterator {
  public:
   using iterator_category = Category;
-  using value_type = typename Base::value_type;
-  using difference_type = typename Base::difference_type;
-  using reference = typename Base::reference;
-  using pointer = typename Base::pointer;
+  using value_type = ValueType;
+  using difference_type = std::ptrdiff_t;
+  using pointer = std::conditional_t<IsConst, const ValueType*, ValueType*>;
+  using reference = std::conditional_t<IsConst, const ValueType&, ValueType&>;
 
-  pointer ptr;
+  explicit iterator(NodePtr p = nullptr) : node_(p) {}
 
- public:
-  explicit forward_iterator(pointer p = nullptr) : ptr(p) {}
-  forward_iterator(const forward_iterator<T, false, Category>& other) : ptr(other.base()) {}
+  template <bool OtherConst = IsConst, typename = std::enable_if_t<!OtherConst && IsConst>>
+  iterator(const iterator<ValueType, NodePtr, false, Category, TraversalPolicy, ValueExtractor>& other)
+      : node_(other.base()) {}
 
-  pointer base() const { return this->ptr; }
+  NodePtr base() const { return node_; }
 
-  reference operator*() const { return *ptr; }
-  pointer operator->() const { return ptr; }
+  reference operator*() const { return ValueExtractor()(node_); }
+  pointer operator->() const { return std::addressof(ValueExtractor()(node_)); }
 
-  forward_iterator& operator++() {
-    ++ptr;
+  iterator& operator++() {
+    node_ = TraversalPolicy::next(node_);
     return *this;
   }
 
-  forward_iterator operator++(int) {
-    forward_iterator tmp = *this;
+  iterator operator++(int) {
+    iterator tmp = *this;
     ++(*this);
     return tmp;
   }
 
-  bool operator==(const forward_iterator& other) const { return ptr == other.ptr; }
-  bool operator!=(const forward_iterator& other) const { return ptr != other.ptr; }
+  bool operator==(const iterator& other) const { return node_ == other.node_; }
+  bool operator!=(const iterator& other) const { return node_ != other.node_; }
+
+ protected:
+  NodePtr node_;
 };
 
-// bidirectional iterator, add --
-template <typename T, bool IsConst = false, typename Category = std::bidirectional_iterator_tag>
-class bidirectional_iterator : public forward_iterator<T, IsConst, Category> {
- protected:
-  using Base = forward_iterator<T, IsConst, Category>;
+// bidirectional iterator
+template <typename ValueType, typename NodePtr, bool IsConst = false,
+          typename Category = std::bidirectional_iterator_tag, typename TraversalPolicy = TreeTraversalPolicy<NodePtr>,
+          typename ValueExtractor = DefaultValueExtractor<ValueType>>
+class bidirectional_iterator : public iterator<ValueType, NodePtr, IsConst, Category, TraversalPolicy, ValueExtractor> {
+  using Base = iterator<ValueType, NodePtr, IsConst, Category, TraversalPolicy, ValueExtractor>;
 
  public:
-  using iterator_category = Category;
+  using iterator_category = typename Base::iterator_category;
   using value_type = typename Base::value_type;
   using difference_type = typename Base::difference_type;
-  using reference = typename Base::reference;
   using pointer = typename Base::pointer;
+  using reference = typename Base::reference;
 
- public:
-  explicit bidirectional_iterator(pointer p = nullptr) : Base(p) {}
-  bidirectional_iterator(const bidirectional_iterator<T, false, Category>& other) : Base(other.base()) {}
+  using Base::Base;
 
   bidirectional_iterator& operator--() {
-    --this->ptr;
+    this->node_ = TraversalPolicy::prev(this->node_);
     return *this;
   }
 
@@ -86,46 +135,76 @@ class bidirectional_iterator : public forward_iterator<T, IsConst, Category> {
   }
 };
 
-// random access iterator, add +=, -=, +, -, [], <,>,<=,>=
-template <typename T, bool IsConst = false, typename Category = std::random_access_iterator_tag>
-class random_access_iterator : public bidirectional_iterator<T, IsConst, Category> {
- protected:
-  using Base = bidirectional_iterator<T, IsConst, Category>;
-
- public:
-  using iterator_category = Category;
-  using value_type = typename Base::value_type;
+// random access iterator
+template <typename ValueType, typename NodePtr, bool IsConst = false,
+          typename Category = std::random_access_iterator_tag, typename TraversalPolicy = TreeTraversalPolicy<NodePtr>,
+          typename ValueExtractor = DefaultValueExtractor<ValueType>>
+class random_access_iterator
+    : public bidirectional_iterator<ValueType, NodePtr, IsConst, Category, TraversalPolicy, ValueExtractor> {
+  using Base = bidirectional_iterator<ValueType, NodePtr, IsConst, Category, TraversalPolicy, ValueExtractor>;
   using difference_type = typename Base::difference_type;
   using reference = typename Base::reference;
-  using pointer = typename Base::pointer;
 
  public:
-  explicit random_access_iterator(pointer p = nullptr) : Base(p) {}
-  random_access_iterator(const random_access_iterator<T, false, Category>& other) : Base(other.base()) {}
+  using iterator_category = typename Base::iterator_category;
+  using value_type = typename Base::value_type;
+  using pointer = typename Base::pointer;
+
+  using Base::Base;
 
   random_access_iterator& operator+=(difference_type n) {
-    this->ptr += n;
+    while (n > 0) {
+      this->node_ = TraversalPolicy::next(this->node_);
+      --n;
+    }
+    while (n < 0) {
+      this->node_ = TraversalPolicy::prev(this->node_);
+      ++n;
+    }
     return *this;
   }
 
-  random_access_iterator& operator-=(difference_type n) {
-    this->ptr -= n;
-    return *this;
+  random_access_iterator& operator-=(difference_type n) { return *this += -n; }
+
+  random_access_iterator operator+(difference_type n) const {
+    random_access_iterator tmp = *this;
+    tmp += n;
+    return tmp;
   }
 
-  random_access_iterator operator+(difference_type n) const { return random_access_iterator(this->ptr + n); }
+  random_access_iterator operator-(difference_type n) const {
+    random_access_iterator tmp = *this;
+    tmp -= n;
+    return tmp;
+  }
 
-  random_access_iterator operator-(difference_type n) const { return random_access_iterator(this->ptr - n); }
+  difference_type operator-(const random_access_iterator& other) const {
+    difference_type count = 0;
+    auto tmp = other.node_;
+    while (tmp != this->node_) {
+      tmp = TraversalPolicy::next(tmp);
+      ++count;
+    }
+    return count;
+  }
 
-  difference_type operator-(const random_access_iterator& other) const { return this->ptr - other.ptr; }
+  bool operator<(const random_access_iterator& other) const {
+    auto tmp = this->node_;
+    while (tmp && tmp != other.node_) {
+      tmp = TraversalPolicy::next(tmp);
+    }
+    return tmp != other.node_;
+  }
 
-  bool operator<(const random_access_iterator& other) const { return this->ptr < other.ptr; }
+  bool operator>(const random_access_iterator& other) const { return other < *this; }
+  bool operator<=(const random_access_iterator& other) const { return !(*this > other); }
+  bool operator>=(const random_access_iterator& other) const { return !(*this < other); }
 
-  bool operator>(const random_access_iterator& other) const { return this->ptr > other.ptr; }
-
-  bool operator<=(const random_access_iterator& other) const { return this->ptr <= other.ptr; }
-
-  bool operator>=(const random_access_iterator& other) const { return this->ptr >= other.ptr; }
+  reference operator[](difference_type n) const {
+    random_access_iterator tmp = *this;
+    tmp += n;
+    return *tmp;
+  }
 };
 
 }  // namespace my

@@ -18,7 +18,7 @@ class list {
   using pointer = T*;
   using const_pointer = const T*;
   using size_type = std::size_t;
-  using iterator_category = std::forward_iterator_tag;
+  using iterator_category = std::bidirectional_iterator_tag;
 
  private:
   static constexpr size_type npos = Capacity;
@@ -44,7 +44,7 @@ class list {
     using difference_type = std::ptrdiff_t;
     using reference = std::conditional_t<IsConst, const T&, T&>;
     using pointer = std::conditional_t<IsConst, const T*, T*>;
-    using iterator_category = std::forward_iterator_tag;
+    using iterator_category = std::bidirectional_iterator_tag;
 
     iterator_basic() = default;
     explicit iterator_basic(list_type* lst, size_type idx) : list_(lst), current_(idx) {};

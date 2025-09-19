@@ -360,4 +360,14 @@ TEST(RedBlackTreeTest, CommontRBTest) {
   EXPECT_TRUE(t.is_binary_tree() && t.is_rb_tree());
 }
 
+TEST(RedBlackTreeTest, FindContains) {
+  auto t = make_tree<int, int>();
+
+  EXPECT_TRUE(t.find(15) == 15);
+  EXPECT_TRUE(t.contains(15));
+
+  EXPECT_FALSE(t.find(100) == 100);
+  EXPECT_FALSE(t.contains(100));
+}
+
 }  // namespace my::testing
