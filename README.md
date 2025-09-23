@@ -33,18 +33,18 @@ mystd is a stl-like library.
         - [x] my::unordered_multiset    (todo: should be tested better)
     - [ ] hash table on open addressing
 - [ ] trees
-    - [ ] binary trees
+    - [x] binary trees
         - [ ] bst + templated various balancing algorithms
         - [x] binary search tree (BST)
             - [x] add iterator
-        - [ ] ballanced tree (std::map)
+        - [x] ballanced tree (std::map)
             - [x] AVL
             - [x] red black
             - [ ] treap
-        - [x] std::map
-        - [ ] std::set
-        - [ ] std::multimap
-        - [ ] std::multiset
+        - [x] std::map       -> my::map
+        - [x] std::set       -> my::set
+        - [x] std::multimap  -> my::multimap
+        - [x] std::multiset  -> my::multiset
     - [ ] trie
     - [ ] segment tree
 - [ ] heaps
