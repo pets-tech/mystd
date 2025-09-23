@@ -28,7 +28,7 @@ template <class Value = int>
 using rb_tree_set = rb_tree<Value, KeyOfIdentity<Value>>;
 
 inline rb_tree_map<> make_tree() {
-  rb_tree_map t;
+  rb_tree_map<> t;
   for (auto [k, v] : {std::pair{40, 40},
                       {20, 20},
                       {60, 60},
