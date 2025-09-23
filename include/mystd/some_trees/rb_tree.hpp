@@ -96,12 +96,11 @@ class rb_tree {
     if (node == nullptr) return 0;
 
     if (comp(key, key_of_value(node->value))) {
-      return count(node->left, key);
+      return count_node(node->left, key);
     } else if (comp(key_of_value(node->value), key)) {
-      return count(node->right, key);
+      return count_node(node->right, key);
     } else {
-      // dublicates lives in right subtree
-      return 1 + count(node->right, key);
+      return 1 + count_node(node->left, key) + count_node(node->right, key);
     }
   }
 
