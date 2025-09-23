@@ -1,17 +1,30 @@
 #pragma once
 
 #include <functional>
+#include <initializer_list>
 #include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <sstream>
+#include <stack>
 
 #include "mystd/iterator/iterator.hpp"
 
 namespace my {
 
 enum class NodeColors { RED, BLACK };
+
+template <class Key, class Value>
+struct KeyOfPair {
+  using ValueType = std::pair<Key, Value>;
+  const Key& operator()(const ValueType& v) const noexcept { return v.first; }
+};
+
+template <class Value>
+struct KeyOfIdentity {
+  const Value& operator()(const Value& v) const noexcept { return v; }
+};
 
 /// @brief Red black tree has invariants:
 /// 1. node -- red || black
@@ -369,19 +382,83 @@ class rb_tree {
     delete node;
   }
 
+  Node* safe_copy(Node* root) {
+    // copy nodes data only
+    if (!root) {
+      return nullptr;
+    }
+
+    Node* new_root = nullptr;
+    try {
+      new_root = new Node(root->value);
+      std::stack<std::pair<Node*, Node*>> stack;
+      stack.push({root, new_root});
+
+      while (!stack.empty()) {
+        auto [old_node, new_node] = stack.top();
+        stack.pop();
+
+        if (old_node->right) {
+          new_node->right = new Node(old_node->right->value);
+          stack.push({old_node->right, new_node->right});
+        }
+
+        if (old_node->left) {
+          new_node->left = new Node(old_node->left->value);
+          stack.push({old_node->left, new_node->left});
+        }
+      }
+    } catch (...) {
+      clear_nodes(new_root);
+      throw;
+    }
+    return new_root;
+  }
+
  public:
-  rb_tree() {}
-  rb_tree(const rb_tree& other) {}
-  rb_tree(rb_tree&& other) {}
+  rb_tree() : root(nullptr), size_(0) {}
+
+  rb_tree(std::initializer_list<ValueType> init) {
+    for (const auto& el : init) {
+      insert(el);
+    }
+  }
+
+  rb_tree(const rb_tree& other) {
+    root = safe_copy(other.root);
+    size_ = other.size_;
+  }
+
+  rb_tree(rb_tree&& other) : root(std::exchange(other.root, nullptr)), size_(std::exchange(other.size_, 0)) {}
+
   ~rb_tree() { clear(); }
 
-  rb_tree& operator=(const rb_tree& other) {}
-  rb_tree& operator=(rb_tree&& other) {}
+  rb_tree& operator=(const rb_tree& other) {
+    if (this != &other) {
+      rb_tree tmp(other);
+      swap(tmp);
+    }
+    return *this;
+  }
+
+  rb_tree& operator=(rb_tree&& other) {
+    if (this != &other) {
+      clear();
+      root = std::exchange(other.root, nullptr);
+      size_ = std::exchange(other.size_, 0);
+    }
+    return *this;
+  }
 
   void clear() {
     clear_nodes(root);
     root = nullptr;
     size_ = 0;
+  }
+
+  void swap(rb_tree& other) {
+    std::swap(root, other.root);
+    std::swap(size_, other.size_);
   }
 
   void insert(const ValueType& value) {
@@ -473,14 +550,14 @@ class rb_tree {
     --size_;
   }
 
-  ValueType* find(const Key& key) {
+  iterator find(const Key& key) {
     Node* n = find_node(root, key);
-    return n ? &n->value : nullptr;
+    return iterator(n);
   }
 
-  const ValueType* find(const Key& key) const {
+  const_iterator find(const Key& key) const {
     Node* n = find_node(root, key);
-    return n ? &n->value : nullptr;
+    return const_iterator(n);
   }
 
   bool contains(const Key& key) const { return find_node(root, key) != nullptr; }

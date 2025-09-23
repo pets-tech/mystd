@@ -21,17 +21,6 @@ namespace my::testing {
 
 // helpers
 
-template <class Key, class Value>
-struct KeyOfPair {
-  using ValueType = std::pair<Key, Value>;
-  const Key& operator()(const ValueType& v) const noexcept { return v.first; }
-};
-
-template <class Value>
-struct KeyOfIdentity {
-  const Value& operator()(const Value& v) const noexcept { return v; }
-};
-
 template <class Key = int, class Value = int>
 using rb_tree_map = rb_tree<std::pair<Key, Value>, KeyOfPair<Key, Value>>;
 
@@ -54,6 +43,60 @@ inline rb_tree_map<> make_tree() {
     t.insert({k, v});
   }
   return t;
+}
+
+TEST(RBTreeTest, ConstructCopy) {
+  // ctor
+  rb_tree_map<int, int> t1;
+  EXPECT_EQ(t1.size(), 0u);
+  EXPECT_TRUE(t1.empty());
+
+  rb_tree_map<int, int> t2 = {{1, 10}, {2, 20}, {3, 30}};
+  EXPECT_EQ(t2.size(), 3u);
+  EXPECT_FALSE(t2.empty());
+
+  // copy
+  rb_tree_map<int, int> t3(t2);
+  EXPECT_EQ(t3.size(), 3u);
+  EXPECT_FALSE(t3.empty());
+  EXPECT_TRUE(t3.contains(2));
+
+  rb_tree_map<int, int> t4;
+  t4 = t2;
+  EXPECT_EQ(t4.size(), 3u);
+  EXPECT_FALSE(t4.empty());
+  EXPECT_TRUE(t4.contains(2));
+}
+
+TEST(RBTreeTest, ConstructMove) {
+  // ctor
+  rb_tree_map<int, int> t1;
+  EXPECT_EQ(t1.size(), 0u);
+  EXPECT_TRUE(t1.empty());
+
+  rb_tree_map<int, int> t2 = {{1, 10}, {2, 20}, {3, 30}};
+  EXPECT_EQ(t2.size(), 3u);
+  EXPECT_FALSE(t2.empty());
+
+  // move
+  rb_tree_map<int, int> t3(std::move(t2));
+  EXPECT_EQ(t3.size(), 3u);
+  EXPECT_FALSE(t3.empty());
+  EXPECT_TRUE(t3.contains(2));
+
+  EXPECT_EQ(t2.size(), 0u);
+  EXPECT_TRUE(t2.empty());
+  EXPECT_FALSE(t2.contains(2));
+
+  rb_tree_map<int, int> t4;
+  t4 = std::move(t3);
+  EXPECT_EQ(t4.size(), 3u);
+  EXPECT_FALSE(t4.empty());
+  EXPECT_TRUE(t4.contains(2));
+
+  EXPECT_EQ(t3.size(), 0u);
+  EXPECT_TRUE(t3.empty());
+  EXPECT_FALSE(t3.contains(2));
 }
 
 TEST(RBTreeTest, TestTestingTree) {
@@ -302,7 +345,7 @@ TEST(RBTreeTest, FindContains) {
 
 // iterators
 TEST(RBTreeTest, EmptyTree) {
-  my::rb_tree<std::pair<int, int>, my::testing::KeyOfPair<int, int>, std::less<const int&>> t;
+  my::rb_tree<std::pair<int, int>, KeyOfPair<int, int>, std::less<const int&>> t;
   EXPECT_EQ(t.begin(), t.end());
   EXPECT_EQ(t.cbegin(), t.cend());
   EXPECT_EQ(t.rbegin(), t.rend());
@@ -355,4 +398,33 @@ TEST(RBTreeTest, Iterators) {
   }
   EXPECT_EQ(keys, std::vector<int>({70, 65, 60, 50, 45, 40, 30, 20, 15, 10}));
 }
+
+TEST(RBTreeTest, FindIterators) {
+  auto t = make_tree();
+
+  auto it = t.find(10);
+  EXPECT_EQ(it->first, 10);
+
+  it++;
+  EXPECT_EQ(it->first, 15);
+
+  ++it;
+  EXPECT_EQ(it->first, 20);
+
+  it = t.find(45);
+  EXPECT_EQ(it->first, 45);
+
+  --it;
+  EXPECT_EQ(it->first, 40);
+
+  it--;
+  EXPECT_EQ(it->first, 30);
+
+  it = t.find(75);
+  EXPECT_EQ(it->first, 75);
+
+  it++;
+  EXPECT_TRUE(it == t.end());
+}
+
 }  // namespace my::testing
