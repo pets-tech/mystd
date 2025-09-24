@@ -40,7 +40,7 @@ mystd is a stl-like library.
         - [x] ballanced tree (std::map)
             - [x] AVL
             - [x] red black
-            - [ ] treap
+            - [x] treap
         - [x] std::map       -> my::map
         - [x] std::set       -> my::set
         - [x] std::multimap  -> my::multimap
