@@ -11,17 +11,6 @@
 
 namespace my {
 
-template <class Key, class Value>
-struct KeyOfPair {
-  using ValueType = std::pair<Key, Value>;
-  const Key& operator()(const ValueType& v) const noexcept { return v.first; }
-};
-
-template <class Value>
-struct KeyOfIdentity {
-  const Value& operator()(const Value& v) const noexcept { return v; }
-};
-
 /// @brief Tree + heap
 /// ref: https://neerc.ifmo.ru/wiki/index.php?title=Декартово_дерево
 template <typename ValueType, typename KeyOfValue,
@@ -265,6 +254,8 @@ class treap {
   }
 
   void erase(const key_type& key) { root_ = erase_node(root_, key); }
+
+  bool contains(const key_type& key) const { return find_node(root_, key) != nullptr; }
 
   iterator find(const key_type& key) {
     Node* found = find_node(root_, key);

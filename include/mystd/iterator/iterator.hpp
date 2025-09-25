@@ -5,6 +5,17 @@
 
 namespace my {
 
+template <class Key, class Value>
+struct KeyOfPair {
+  using ValueType = std::pair<Key, Value>;
+  const Key& operator()(const ValueType& v) const noexcept { return v.first; }
+};
+
+template <class Value>
+struct KeyOfIdentity {
+  const Value& operator()(const Value& v) const noexcept { return v; }
+};
+
 // traversal policies
 
 template <typename NodePtr>
@@ -83,6 +94,13 @@ class iterator {
   template <bool OtherConst = IsConst, typename = std::enable_if_t<!OtherConst && IsConst>>
   iterator(const iterator<ValueType, NodePtr, false, Category, TraversalPolicy, ValueExtractor>& other)
       : node_(other.base()) {}
+  iterator operator=(const iterator<ValueType, NodePtr, false, Category, TraversalPolicy, ValueExtractor>& other) {
+    if (this != &other) {
+      iterator tmp(other);
+      swap(tmp);
+    }
+    return *this;
+  }
 
   NodePtr base() const { return node_; }
 
@@ -102,6 +120,8 @@ class iterator {
 
   bool operator==(const iterator& other) const { return node_ == other.node_; }
   bool operator!=(const iterator& other) const { return node_ != other.node_; }
+
+  void swap(iterator& other) { std::swap(node_, other.node_); }
 
  protected:
   NodePtr node_;

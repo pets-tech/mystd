@@ -15,17 +15,6 @@ namespace my {
 
 enum class NodeColors { RED, BLACK };
 
-template <class Key, class Value>
-struct KeyOfPair {
-  using ValueType = std::pair<Key, Value>;
-  const Key& operator()(const ValueType& v) const noexcept { return v.first; }
-};
-
-template <class Value>
-struct KeyOfIdentity {
-  const Value& operator()(const Value& v) const noexcept { return v; }
-};
-
 /// @brief Red black tree has invariants:
 /// 1. node -- red || black
 /// 2. root -- black

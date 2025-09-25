@@ -34,17 +34,16 @@ mystd is a stl-like library.
     - [ ] hash table on open addressing
 - [ ] trees
     - [x] binary trees
-        - [ ] bst + templated various balancing algorithms
         - [x] binary search tree (BST)
-            - [x] add iterator
         - [x] ballanced tree (std::map)
             - [x] AVL
             - [x] red black
             - [x] treap
-        - [x] std::map       -> my::map
-        - [x] std::set       -> my::set
-        - [x] std::multimap  -> my::multimap
-        - [x] std::multiset  -> my::multiset
+        - [x] map/set base on abstract tree (see `test_map_for_many_trees.cpp`)
+            - [x] std::map       -> my::map
+            - [x] std::set       -> my::set
+            - [x] std::multimap  -> my::multimap
+            - [x] std::multiset  -> my::multiset
     - [ ] trie
     - [ ] segment tree
 - [ ] heaps
@@ -56,3 +55,4 @@ mystd is a stl-like library.
     - [ ] DFS, BFS
     - [ ] DSU
     - [ ] Skip List
+- [x] external `iterator.hpp`
